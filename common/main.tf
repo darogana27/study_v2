@@ -48,7 +48,7 @@ resource "aws_dynamodb_table" "terraform-locks" {
 terraform {
   backend "s3" {
     bucket = "terraform-state-2024-0204"
-    key = "global/s3/terraform.tfstate"
+    key = "common/s3/terraform.tfstate"
     region = "us-east-2"
 
     dynamodb_table = "terraform-locks"
