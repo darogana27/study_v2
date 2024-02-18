@@ -1,9 +1,9 @@
 provider "aws" {
-    region = "us-east-2"
+    region = "ap-northeast-1"
 }
 
 resource "aws_s3_bucket" "terraform-state" {
-  bucket = "terraform-state-2024-0204"
+  bucket = "terraform-state-2024-0211"
   lifecycle {
     prevent_destroy = true
   }
@@ -45,13 +45,13 @@ resource "aws_dynamodb_table" "terraform-locks" {
   }
 }
 
-terraform {
-  backend "s3" {
-    bucket = "terraform-state-2024-0204"
-    key = "common/s3/terraform.tfstate"
-    region = "us-east-2"
+# terraform {
+#   backend "s3" {
+#     bucket = "terraform-state-2024-0211"
+#     key = "common/s3/terraform.tfstate"
+#     region = "ap-northeast-1"
 
-    dynamodb_table = "terraform-locks"
-    encrypt = true
-  }
-}
+#     dynamodb_table = "terraform-locks"
+#     encrypt = true
+#   }
+# }
