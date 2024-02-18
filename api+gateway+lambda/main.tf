@@ -11,3 +11,16 @@ resource "aws_lambda_function" "lambda-test" {
   handler   = "lambda_function.lambda_handler"
   runtime   = "python3.12"
 }
+
+resource "aws_apigatewayv2_api" "api-gateway-test" {
+  name = "api-gateway-test"
+  protocol_type = "HTTP"
+}
+
+terraform {
+  backend "s3" {
+    bucket = "terraform-state-2024-0211"
+    key = "study_v2/api_gateway+lambda/terraform.tfstate"
+    region = "ap-northeast-1"
+  }
+}
