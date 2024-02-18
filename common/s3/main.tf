@@ -2,36 +2,14 @@ provider "aws" {
     region = "ap-northeast-1"
 }
 
-resource "aws_s3_bucket" "terraform-state" {
-  bucket = "terraform-state-2024-0211"
-  lifecycle {
-    prevent_destroy = true
-  }
+module "state_s3" {
+  source         = "../../modules/s3"
+  s3_bucket_name = "terraform-state-2024-0218"
 }
 
-resource "aws_s3_bucket_versioning" "enabled" {
-    bucket = aws_s3_bucket.terraform-state.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "default" {
-  bucket = aws_s3_bucket.terraform-state.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
-}
-
-resource "aws_s3_bucket_public_access_block" "public_address" {
-  bucket = aws_s3_bucket.terraform-state.id
-  block_public_acls = true
-  block_public_policy = true
-  ignore_public_acls = true
-  restrict_public_buckets = true
+module "apilambda_s3" {
+  source         = "../../modules/s3"
+  s3_bucket_name = "lambda-package-2024-0218"
 }
 
 resource "aws_dynamodb_table" "terraform-locks" {
@@ -45,13 +23,14 @@ resource "aws_dynamodb_table" "terraform-locks" {
   }
 }
 
-# terraform {
-#   backend "s3" {
-#     bucket = "terraform-state-2024-0211"
-#     key = "common/s3/terraform.tfstate"
-#     region = "ap-northeast-1"
 
-#     dynamodb_table = "terraform-locks"
-#     encrypt = true
-#   }
-# }
+terraform {
+  backend "s3" {
+    bucket = "terraform-state-2024-0218"
+    key = "common/s3/terraform.tfstate"
+    region = "ap-northeast-1"
+
+    dynamodb_table = "terraform-locks"
+    encrypt = true
+  }
+}
