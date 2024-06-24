@@ -27,10 +27,10 @@ resource "aws_iam_policy" "line_notify_policy" {
           "s3:GetObject"
         ],
         Resource = [
-            "arn:aws:s3:::amount-of-electricity/*",
-            # 一旦仮で。後で消す
-            "arn:aws:s3:::tokyo-gas-electricity/*"
-            ]
+          "arn:aws:s3:::amount-of-electricity/*",
+          # 一旦仮で。後で消す
+          "arn:aws:s3:::tokyo-gas-electricity/*"
+        ]
       }
     ]
   })
@@ -49,7 +49,7 @@ resource "aws_lambda_function" "line_notify" {
   }
 }
 
-resource "aws_ecr_repository" "daily-electricity"{
+resource "aws_ecr_repository" "daily-electricity" {
   name = "daily-electricity"
 }
 
@@ -87,7 +87,7 @@ resource "aws_iam_policy" "daily-electricity_policy" {
           "s3:PutObject"
         ],
         Resource = [
-            "arn:aws:s3:::amount-of-electricity/*",
+          "arn:aws:s3:::amount-of-electricity/*",
         ]
       }
     ]
@@ -96,10 +96,10 @@ resource "aws_iam_policy" "daily-electricity_policy" {
 
 resource "aws_lambda_function" "daily-electricity" {
   package_type  = "Image"
-  image_uri = "${local.account_id}.dkr.ecr.${local.env.region}.amazonaws.com/daily-electricity:latest"
+  image_uri     = "${local.account_id}.dkr.ecr.${local.env.region}.amazonaws.com/daily-electricity:latest"
   function_name = "daily-electricity"
   role          = aws_iam_role.daily-electricity_role.arn
-  memory_size = 512
+  memory_size   = 512
   timeout       = 60
 
   ephemeral_storage {

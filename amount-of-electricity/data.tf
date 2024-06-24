@@ -11,4 +11,4 @@ data "aws_iam_policy_document" "assume_role" {
   }
 }
 
-data "aws_caller_identity" "self" { }
+data "aws_caller_identity" "self" {}
