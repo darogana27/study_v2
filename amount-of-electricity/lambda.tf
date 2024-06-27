@@ -100,7 +100,7 @@ resource "aws_lambda_function" "daily-electricity" {
   function_name = "daily-electricity"
   role          = aws_iam_role.daily-electricity_role.arn
   memory_size   = 512
-  timeout       = 60
+  timeout       = 90
 
   ephemeral_storage {
     size = 1024 # Min 512 MB and the Max 10240 MB
