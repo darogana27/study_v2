@@ -1,79 +1,77 @@
 resource "aws_lambda_function" "it" {
-  function_name                  = format("%s-function", var.function_name)
-  role                           = aws_iam_role.it.arn
-  description                    = try(var.description, "Maneged by Terraform")
-  runtime                        = try(var.runtime, "python3.12")
-  filename                       = var.filename
-  handler                        = try(var.handler, "lambda_function.lambda_handler")
-  timeout                        = try(var.timeout, "60")
-  image_uri                      = try(var.image_url, null)
-  package_type                   = var.image_url != null ? "Image" : "Zip"
-  publish                        = var.publish
-  reserved_concurrent_executions = var.reserved_concurrent_executions
-  memory_size                    = var.memory_size
+  for_each = var.lambda_functions
+
+  function_name                  = format("%s-function", each.value.function_name)
+  role                           = aws_iam_role.it[each.key].arn
+  description                    = each.value.description
+  runtime                        = each.value.filename == null ? null : each.value.runtime
+  filename                       = each.value.filename
+  handler                        = each.value.filename == null ? null : each.value.handler
+  timeout                        = each.value.timeout
+  image_uri                      = each.value.image_uri
+  package_type                   = each.value.image_uri != null ? "Image" : "Zip"
+  publish                        = each.value.publish
+  reserved_concurrent_executions = each.value.reserved_concurrent_executions
+  memory_size                    = each.value.memory_size
   ephemeral_storage {
-    size = var.size
+    size = each.value.size
   }
-  depends_on = [
-    aws_cloudwatch_log_group.it
-  ]
   tags = {
-    Name = var.function_name
+    Name = each.value.function_name
   }
+
+  depends_on = [aws_cloudwatch_log_group.it]
 }
 
 resource "aws_cloudwatch_log_group" "it" {
-  name              = "/aws/lambda/${var.function_name}-function"
+  for_each = var.lambda_functions
+
+  name              = "/aws/lambda/${each.value.function_name}-function"
   retention_in_days = 30
   tags = {
-    Name = var.function_name
+    Name = each.value.function_name
   }
 }
 
 resource "aws_iam_role" "it" {
-  name               = format("%s-function-role", var.function_name)
+  for_each = var.lambda_functions
+
+  name               = format("%s-function-role", each.value.function_name)
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
   tags = {
-    Name = var.function_name
+    Name = each.value.function_name
   }
 }
 
 resource "aws_iam_role_policy_attachment" "it" {
-  role       = aws_iam_role.it.name
-  policy_arn = aws_iam_policy.it.arn
+  for_each = var.lambda_functions
+
+  role       = aws_iam_role.it[each.key].name
+  policy_arn = aws_iam_policy.it[each.key].arn
 }
 
 resource "aws_iam_policy" "it" {
-  name = format("%s-function-policy", var.function_name)
+  for_each = var.lambda_functions
+
+  name = format("%s-function-policy", each.value.function_name)
 
   policy = jsonencode({
     Version = "2012-10-17",
-    Statement = [
-      {
-        Effect = "Allow",
-        Action = [
-          "ssm:GetParameter"
-        ],
-        Resource = "*"
-      },
-      {
-        Effect = "Allow",
-        Action = [
-          "s3:PutObject"
-        ],
-        Resource = [
-          "arn:aws:s3:::amount-of-electricity/*",
-        ]
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents",
-        ]
-        Resource = ["arn:aws:logs:*:*:*"]
-      }
-    ]
+    Statement = concat(
+      [
+      for p in coalesce(each.value.iam_policies, []) : {
+          Effect   = p.effect
+          Action   = p.actions
+          Resource = p.resources
+        }
+      ],      
+      [
+        for p in coalesce(each.value.additional_iam_policies, []) : {
+          Effect   = p.effect
+          Action   = p.actions
+          Resource = p.resources
+        }
+      ]
+    )  
   })
 }

@@ -1,8 +1,6 @@
-# イベントブリッジスケジュールグループの作成
-resource "aws_scheduler_schedule_group" "electricity" {
-  name = local.name
-
-  tags = {
-    name = local.name
-  }
+module "eventbridge" {
+  source        = "../modules/eventbridge/scheduler"
+  schedule_name = "amount-of-electricity"
+  target_arn    = module.step_function.state_machine_arn
+  role_arn      = module.eventbridge_role.role_arn
 }

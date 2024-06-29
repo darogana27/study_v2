@@ -1,65 +1,42 @@
-variable "function_name" {
-  type        = string
-  default     = "default"
-  description = "Lambda関数名"
-}
-
-variable "description" {
-  type        = string
-  default     = "Maneged by Terrafirn"
-  description = "説明"
-}
-
-variable "runtime" {
-  type        = string
-  default     = "python3.12"
-  description = "ランタイム"
-}
-
-variable "filename" {
-  type        = string
-  default     = null
-  description = "Your/path/filenameを指定"
-}
-
-variable "handler" {
-  type        = string
-  default     = "lambda_function.lambda_handler"
-  description = "ハンドラー"
-}
-
-variable "timeout" {
-  type        = number
-  default     = 3
-  description = "タイムアウト"
-}
-
-variable "image_url" {
-  type        = string
-  default     = null
-  description = "DockerImageを使用する場合にECRのURIを指定"
-}
-
-variable "publish" {
-  type        = bool
-  default     = false
-  description = "新しい関数バージョンとして公開するか"
-}
-
-variable "reserved_concurrent_executions" {
-  type        = number
-  default     = -1
-  description = "ラムダ関数の予約同時実行数"
-}
-
-variable "memory_size" {
-  type        = number
-  default     = 512
-  description = "メモリーサイズ"
-}
-
-variable "size" {
-  type        = number
-  default     = 512
-  description = "一時ストレージのサイズ (MB 単位)"
+variable "lambda_functions" {
+  description = "Lambda関数の設定をマップで定義します"
+  type = map(object({
+    function_name                  = string                                             # Lambda関数の名前
+    filename                       = optional(string, null)                             # Lambda関数のコードが格納されたファイル
+    handler                        = optional(string, "lambda_function.lambda_handler") # Lambda関数のハンドラー
+    runtime                        = optional(string, "python3.12")                     # Lambda関数のランタイム
+    description                    = optional(string, "Managed by Terraform")           # Lambda関数の説明
+    timeout                        = optional(number, 60)                               # Lambda関数のタイムアウト（秒）
+    memory_size                    = optional(number, 128)                              # Lambda関数のメモリサイズ（MB）
+    size                           = optional(number, 512)                              # 一時ストレージのサイズ（MB）
+    image_uri                      = optional(string, null)                             # Lambda関数のイメージURI
+    publish                        = optional(bool, false)                              # Lambda関数の公開設定
+    reserved_concurrent_executions = optional(number, -1)                               # Lambda関数の予約済みの同時実行数
+    iam_policies = optional(list(object({
+      effect    = string       # IAMポリシーの効果（AllowまたはDeny）
+      actions   = list(string) # 許可するアクションのリスト
+      resources = list(string) # 許可するリソースのリスト
+      })), [                   # デフォルトポリシー
+      {
+        effect    = "Allow"
+        actions   = ["ssm:GetParameter"]
+        resources = ["*"]
+      },
+      {
+        effect    = "Allow"
+        actions   = ["s3:PutObject"]
+        resources = ["arn:aws:s3:::amount-of-electricity/*"]
+      },
+      {
+        effect    = "Allow"
+        actions   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
+        resources = ["arn:aws:logs:*:*:*"]
+      }
+      ]),
+    additional_iam_policies = optional(list(object({ # 追加のポリシー
+      effect    = string       
+      actions   = list(string)
+      resources = list(string)
+    })), [])
+  }))
 }
