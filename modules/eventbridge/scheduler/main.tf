@@ -8,7 +8,8 @@ resource "aws_scheduler_schedule" "it" {
     mode = each.value.flexible_time_window
   }
 
-  schedule_expression = each.value.schedule_expression
+  schedule_expression          = each.value.schedule_expression
+  schedule_expression_timezone = "Japan"
 
   target {
     arn      = each.value.target_arn

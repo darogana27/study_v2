@@ -24,11 +24,6 @@ variable "lambda_functions" {
       },
       {
         effect    = "Allow"
-        actions   = ["s3:PutObject"]
-        resources = ["arn:aws:s3:::amount-of-electricity/*"]
-      },
-      {
-        effect    = "Allow"
         actions   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
         resources = ["arn:aws:logs:*:*:*"]
       }

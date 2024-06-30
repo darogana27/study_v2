@@ -12,14 +12,14 @@ resource "aws_s3_bucket_accelerate_configuration" "it" {
   status = each.value.accelerate_configuration
 }
 
-resource "aws_s3_bucket_acl" "it" {
-  for_each = var.s3_bucket
+# resource "aws_s3_bucket_acl" "it" {
+#   for_each = var.s3_bucket
 
-  depends_on = [aws_s3_bucket_ownership_controls.it]
+#   depends_on = [aws_s3_bucket_ownership_controls.it]
 
-  bucket = aws_s3_bucket.it[each.key].id
-  acl    = each.value.bucket_acl
-}
+#   bucket = aws_s3_bucket.it[each.key].id
+#   acl    = each.value.bucket_acl
+# }
 
 resource "aws_s3_bucket_ownership_controls" "it" {
   for_each = var.s3_bucket
@@ -95,15 +95,15 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "it" {
   }
 }
 
-resource "aws_s3_bucket_public_access_block" "it" {
-  for_each = var.s3_bucket
+# resource "aws_s3_bucket_public_access_block" "it" {
+#   for_each = var.s3_bucket
 
-  bucket                  = aws_s3_bucket.it[each.key].id
-  block_public_acls       = each.value.block_public_acls
-  block_public_policy     = each.value.block_public_policy
-  ignore_public_acls      = each.value.ignore_public_acls
-  restrict_public_buckets = each.value.restrict_public_buckets
-}
+#   bucket                  = aws_s3_bucket.it[each.key].id
+#   block_public_acls       = each.value.block_public_acls
+#   block_public_policy     = each.value.block_public_policy
+#   ignore_public_acls      = each.value.ignore_public_acls
+#   restrict_public_buckets = each.value.restrict_public_buckets
+# }
 
 resource "aws_s3_bucket_notification" "it" {
   for_each = { for k, v in var.s3_bucket : k => v if length(v.notifications) > 0 }

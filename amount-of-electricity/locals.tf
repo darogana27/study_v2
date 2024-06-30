@@ -1,7 +1,6 @@
 locals {
   env = {
-    region = "ap-northeast-1"
+    region     = data.aws_region.self.name
+    account_id = data.aws_caller_identity.self.account_id
   }
-  name       = "electricity"
-  account_id = data.aws_caller_identity.self.account_id
 }
