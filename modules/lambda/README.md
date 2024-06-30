@@ -95,46 +95,40 @@ resource "aws_iam_policy" "it" {
 
 各変数の詳細な設定項目は以下の通りです:
 
-variable "lambda_functions" {
-  description = "Lambda関数の設定をマップで定義します"
-  type = map(object({
-    function_name                  = string                                             # Lambda関数の名前
-    filename                       = optional(string, null)                             # Lambda関数のコードが格納されたファイル
-    handler                        = optional(string, "lambda_function.lambda_handler") # Lambda関数のハンドラー
-    runtime                        = optional(string, "python3.12")                     # Lambda関数のランタイム
-    description                    = optional(string, "Managed by Terraform")           # Lambda関数の説明
-    timeout                        = optional(number, 60)                               # Lambda関数のタイムアウト（秒）
-    memory_size                    = optional(number, 128)                              # Lambda関数のメモリサイズ（MB）
-    size                           = optional(number, 512)                              # 一時ストレージのサイズ（MB）
-    image_uri                      = optional(string, null)                             # Lambda関数のイメージURI
-    publish                        = optional(bool, false)                              # Lambda関数の公開設定
-    reserved_concurrent_executions = optional(number, -1)                               # Lambda関数の予約済みの同時実行数
-    iam_policies = optional(list(object({
-      effect    = string       # IAMポリシーの効果（AllowまたはDeny）
-      actions   = list(string) # 許可するアクションのリスト
-      resources = list(string) # 許可するリソースのリスト
-      })), [                   # デフォルトポリシー
-      {
-        effect    = "Allow"
-        actions   = ["ssm:GetParameter"]
-        resources = ["*"]
-      },
-      {
-        effect    = "Allow"
-        actions   = ["s3:PutObject"]
-        resources = ["arn:aws:s3:::amount-of-electricity/*"]
-      },
-      {
-        effect    = "Allow"
-        actions   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
-        resources = ["arn:aws:logs:*:*:*"]
-      }
-      ]),
-    additional_iam_policies = optional(list(object({ # 追加のポリシー
-      effect    = string       
-      actions   = list(string)
-      resources = list(string)
-    })), [])
-  }))
-}
-
+- `function_name`: Lambda関数の名前 (string, 必須)
+- `filename`: Lambda関数のコードが格納されたファイル (optional(string, null))
+- `handler`: Lambda関数のハンドラー (optional(string, "lambda_function.lambda_handler"))
+- `runtime`: Lambda関数のランタイム (optional(string, "python3.12"))
+- `description`: Lambda関数の説明 (optional(string, "Managed by Terraform"))
+- `timeout`: Lambda関数のタイムアウト（秒）(optional(number, 60))
+- `memory_size`: Lambda関数のメモリサイズ（MB）(optional(number, 128))
+- `size`: 一時ストレージのサイズ（MB）(optional(number, 512))
+- `image_uri`: Lambda関数のイメージURI (optional(string, null))
+- `publish`: Lambda関数の公開設定 (optional(bool, false))
+- `reserved_concurrent_executions`: Lambda関数の予約済みの同時実行数 (optional(number, -1))
+- `iam_policies`: IAMポリシーのリスト (optional(list(object({
+    - `effect`: IAMポリシーの効果（AllowまたはDeny）
+    - `actions`: 許可するアクションのリスト
+    - `resources`: 許可するリソースのリスト
+  })), [ 
+    {
+      effect    = "Allow"
+      actions   = ["ssm:GetParameter"]
+      resources = ["*"]
+    },
+    {
+      effect    = "Allow"
+      actions   = ["s3:PutObject"]
+      resources = ["arn:aws:s3:::amount-of-electricity/*"]
+    },
+    {
+      effect    = "Allow"
+      actions   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
+      resources = ["arn:aws:logs:*:*:*"]
+    }
+  ]))
+- `additional_iam_policies`: 追加のIAMポリシーのリスト (optional(list(object({
+    - `effect`: IAMポリシーの効果（AllowまたはDeny）
+    - `actions`: 許可するアクションのリスト
+    - `resources`: 許可するリソースのリスト
+  })), []))
