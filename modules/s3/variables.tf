@@ -6,7 +6,7 @@ variable "s3_bucket" {
     object_lock_enabled      = optional(bool, false)
     accelerate_configuration = optional(string, "Suspended")
     bucket_acl               = optional(string, "private")
-    object_ownership         = optional(string, "BucketOwnerPreferred") 
+    object_ownership         = optional(string, "BucketOwnerPreferred")
     versioning_status        = optional(string, "Enabled")
     encryption_algorithm     = optional(string, "AES256")
     block_public_acls        = optional(bool, true)
@@ -26,12 +26,12 @@ variable "s3_bucket" {
       }))
     })), [])
     notifications = optional(list(object({
-      event_type   = string
-      filter_prefix = optional(string)
-      filter_suffix = optional(string)
+      event_type          = string
+      filter_prefix       = optional(string)
+      filter_suffix       = optional(string)
       lambda_function_arn = optional(string)
-      topic_arn          = optional(string)
-      queue_arn          = optional(string)
+      topic_arn           = optional(string)
+      queue_arn           = optional(string)
     })), [])
   }))
 }

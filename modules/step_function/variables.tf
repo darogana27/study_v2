@@ -1,21 +1,22 @@
-variable "name" {
-  description = "ステートマシン名"
+variable "state_machine" {
+  description = "ステートマシン作成に必要な設定"
+  type = map(object({
+    name       = string
+    definition = optional(string)
+    additional_policies = optional(list(object({
+      effect    = string
+      actions   = list(string)
+      resources = list(string)
+    })), [])
+  }))
+}
+
+variable "account_id" {
+  description = "AWSアカウントID"
   type        = string
 }
 
-variable "step_function_actions" {
-  description = "ステートマシンに付与する権限"
-  type        = list(string)
-  default     = [
-    "states:StartExecution", 
-    "states:StopExecution", 
-    "states:DescribeExecution", 
-    "states:ListExecutions",
-    "lambda:InvokeFunction"
-    ]
-}
-
-variable "definition" {
-  description = "定義(JSONで)"
+variable "region" {
+  description = "AWSリージョン"
   type        = string
 }
