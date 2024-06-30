@@ -32,9 +32,9 @@ variable "lambda_functions" {
         actions   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
         resources = ["arn:aws:logs:*:*:*"]
       }
-      ]),
+    ]),
     additional_iam_policies = optional(list(object({ # 追加のポリシー
-      effect    = string       
+      effect    = string
       actions   = list(string)
       resources = list(string)
     })), [])

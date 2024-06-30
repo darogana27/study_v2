@@ -59,12 +59,12 @@ resource "aws_iam_policy" "it" {
     Version = "2012-10-17",
     Statement = concat(
       [
-      for p in coalesce(each.value.iam_policies, []) : {
+        for p in coalesce(each.value.iam_policies, []) : {
           Effect   = p.effect
           Action   = p.actions
           Resource = p.resources
         }
-      ],      
+      ],
       [
         for p in coalesce(each.value.additional_iam_policies, []) : {
           Effect   = p.effect
@@ -72,6 +72,6 @@ resource "aws_iam_policy" "it" {
           Resource = p.resources
         }
       ]
-    )  
+    )
   })
 }
