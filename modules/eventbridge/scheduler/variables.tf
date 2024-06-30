@@ -1,39 +1,26 @@
-variable "schedule_name" {
-  description = "スケジュール名"
+variable "schedules" {
+  description = "スケジュールのリスト"
+  type = map(object({
+    schedule_name        = string
+    flexible_time_window = optional(string, "OFF")
+    schedule_expression  = optional(string, "cron(0 21 * * ? *)")
+    target_arn           = string
+    input_message_body   = optional(string, "")
+    input_queue_url      = optional(string, "")
+    additional_policies = optional(list(object({
+      effect    = string
+      actions   = list(string)
+      resources = list(string)
+    })), [])
+  }))
+}
+
+variable "account_id" {
+  description = "AWSアカウントID"
   type        = string
 }
 
-variable "flexible_time_window" {
-  description = "スケジュールの実行時間に柔軟性を持たせる場合がはONに"
-  default     = "OFF"
+variable "region" {
+  description = "AWSリージョン"
   type        = string
-}
-
-variable "schedule_expression" {
-  description = "スケジュールの設定"
-  default     = "cron(0 21 * * ? *)"
-  type        = string
-}
-
-variable "target_arn" {
-  description = "ターゲットにするリソースのARN"
-  type        = string
-  default = null
-}
-
-variable "role_arn" {
-  description = "IAM Role名"
-  type        = string
-}
-
-variable "input_message_body" {
-  description = "メッセージを指定する場合に指定"
-  type        = string
-  default     = ""
-}
-
-variable "input_queue_url" {
-  description = "キューのURLを指定"
-  type        = string
-  default     = ""
 }

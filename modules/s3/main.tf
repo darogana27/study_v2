@@ -7,7 +7,7 @@ resource "aws_s3_bucket" "it" {
 
 resource "aws_s3_bucket_accelerate_configuration" "it" {
   for_each = var.s3_bucket
-  
+
   bucket = aws_s3_bucket.it[each.key].id
   status = each.value.accelerate_configuration
 }
