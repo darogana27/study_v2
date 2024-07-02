@@ -23,7 +23,13 @@ module "state_machines" {
             },
             Retry = [
               {
-                ErrorEquals     = ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException"],
+                ErrorEquals     = [
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException",
+                  "Lambda.TooManyRequestsException",
+                  "CustomError"
+                  ],
                 IntervalSeconds = 1,
                 MaxAttempts     = 3,
                 BackoffRate     = 2,
@@ -32,7 +38,9 @@ module "state_machines" {
             ],
             Catch = [
               {
-                ErrorEquals = ["States.ALL"],
+                ErrorEquals = [
+                  "States.ALL",
+                  ],
                 Next        = "Retry_Daily_Electricity"
               }
             ],
@@ -48,7 +56,13 @@ module "state_machines" {
             },
             Retry = [
               {
-                ErrorEquals     = ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException"],
+                ErrorEquals     = [
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException", 
+                  "Lambda.SdkClientException", 
+                  "Lambda.TooManyRequestsException",
+                  "CustomError"
+                  ],
                 IntervalSeconds = 1,
                 MaxAttempts     = 3,
                 BackoffRate     = 2,
@@ -67,7 +81,13 @@ module "state_machines" {
             },
             Retry = [
               {
-                ErrorEquals     = ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException"],
+                ErrorEquals     = [
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException",
+                  "Lambda.TooManyRequestsException",
+                  "CustomError"
+                  ],
                 IntervalSeconds = 1,
                 MaxAttempts     = 3,
                 BackoffRate     = 2,
