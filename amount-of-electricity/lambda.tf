@@ -12,6 +12,17 @@ module "lambda_functions" {
           actions   = ["s3:PutObject"]
           resources = ["arn:aws:s3:::amount-of-electricity-bucket/*"]
         },
+        {
+          effect    = "Allow"
+          actions   = [
+            "dynamodb:PutItem",
+            "dynamodb:UpdateItem",
+            "dynamodb:GetItem",
+            "dynamodb:Query",
+            "dynamodb:Scan",
+            ]
+          resources = ["arn:aws:dynamodb:${local.env.region}:${local.env.account_id}:table/amount-of-electricity"]
+        },
       ]
     }
     line_notify = {
@@ -22,6 +33,14 @@ module "lambda_functions" {
           effect    = "Allow"
           actions   = ["s3:GetObject"]
           resources = ["arn:aws:s3:::amount-of-electricity-bucket/*"]
+        },
+        {
+          effect    = "Allow"
+          actions   = [
+            "dynamodb:GetItem",
+            "dynamodb:Query"
+            ]
+          resources = ["arn:aws:dynamodb:${local.env.region}:${local.env.account_id}:table/amount-of-electricity"]
         },
       ]
     },
