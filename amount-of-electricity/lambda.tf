@@ -21,7 +21,7 @@ module "lambda_functions" {
             "dynamodb:Query",
             "dynamodb:Scan",
             ]
-          resources = ["arn:aws:dynamodb:${local.env.region}:${local.env.account_id}:table/amount-of-electricity"]
+          resources = ["arn:aws:dynamodb:${local.env.region}:${local.env.account_id}:table/amount-of-electricity-table"]
         },
       ]
     }
@@ -40,7 +40,7 @@ module "lambda_functions" {
             "dynamodb:GetItem",
             "dynamodb:Query"
             ]
-          resources = ["arn:aws:dynamodb:${local.env.region}:${local.env.account_id}:table/amount-of-electricity"]
+          resources = ["arn:aws:dynamodb:${local.env.region}:${local.env.account_id}:table/amount-of-electricity-table"]
         },
       ]
     },

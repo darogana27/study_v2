@@ -20,7 +20,7 @@ variable "dynamodbs" {
       write_capacity     = optional(number)
       projection_type    = string
       non_key_attributes = optional(list(string))
-    })))
+    })),[])
     ttl = optional(object({
       attribute_name = string
       enabled        = bool
