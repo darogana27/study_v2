@@ -1,8 +1,8 @@
 module "s3_bucket" {
   source = "../modules/s3"
   s3_bucket = {
-    amount-of-electricity = {
-      s3_bucket_name = "amount-of-electricity"
+    twitch-api-data-storage = {
+      s3_bucket_name = "twitch-api-data-storage"
       lifecycle_rules = [
         {
           id     = "2month_delete"
