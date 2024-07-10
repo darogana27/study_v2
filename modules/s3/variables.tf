@@ -7,7 +7,7 @@ variable "s3_bucket" {
     accelerate_configuration = optional(string, "Suspended")
     bucket_acl               = optional(string, "private")
     object_ownership         = optional(string, "BucketOwnerPreferred")
-    versioning_status        = optional(string, "Enabled")
+    versioning_status        = optional(string, "Disabled")
     encryption_algorithm     = optional(string, "AES256")
     block_public_acls        = optional(bool, true)
     block_public_policy      = optional(bool, true)
