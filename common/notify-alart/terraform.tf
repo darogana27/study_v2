@@ -19,6 +19,7 @@ provider "aws" {
   default_tags {
     tags = {
       product = "notify-alart"
+      created = "terraform"
     }
   }
 }
