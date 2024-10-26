@@ -67,6 +67,11 @@ resource "aws_iam_role_policy" "it" {
           Resource = [
             "arn:aws:states:${var.region}:${var.account_id}:stateMachine:${each.value.schedule_name}-state-machine"
           ]
+        },
+        {
+          Effect = "Allow"
+          Action = ["lambda:InvokeFunction"]
+          Resource = ["arn:aws:lambda:${var.region}:${var.account_id}:function:${each.value.schedule_name}-*"]
         }
       ],
       [
