@@ -1,7 +1,6 @@
 variable "schedules" {
   description = "スケジュールのリスト"
   type = map(object({
-    schedule_name        = string
     flexible_time_window = optional(string, "OFF")
     schedule_expression  = optional(string, "cron(0 21 * * ? *)")
     target_arn           = string
