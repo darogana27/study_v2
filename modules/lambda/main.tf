@@ -21,6 +21,12 @@ resource "aws_lambda_function" "it" {
   }
 
   depends_on = [aws_cloudwatch_log_group.it]
+
+  lifecycle {
+    ignore_changes = [ 
+      "layers" 
+    ]
+  }
 }
 
 resource "aws_cloudwatch_log_group" "it" {
