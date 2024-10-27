@@ -48,6 +48,15 @@ module "lambda_functions" {
     twitch-api-get-stream = {
       filename = "../../modules/aws/lambda/default.zip"
       additional_iam_policies = [
+        {
+          effect : "Allow",
+          actions : [
+            "dynamodb:*"
+          ],
+          resources : [
+            "*"
+          ]
+        },
       ]
     },
     twitch-api-get-users = {
