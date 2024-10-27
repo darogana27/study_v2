@@ -1,5 +1,5 @@
 module "s3_bucket" {
-  source = "../modules/s3"
+  source = "../../modules/aws/s3"
   s3_bucket = {
     amount-of-electricity = {
       s3_bucket_name = "amount-of-electricity"

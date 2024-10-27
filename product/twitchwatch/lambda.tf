@@ -1,9 +1,9 @@
 module "lambda_functions" {
-  source = "../modules/lambda"
+  source = "../../modules/aws/lambda"
 
   lambda_functions = {
     twitch-rotation = {
-      filename     = "../modules/lambda/default.zip"
+      filename = "../modules/lambda/default.zip"
       additional_iam_policies = [
         {
           effect : "Allow",
@@ -46,17 +46,17 @@ module "lambda_functions" {
       ]
     },
     twitch-api-get-stream = {
-      filename = "../modules/lambda/default.zip"
+      filename = "../../modules/aws/lambda/default.zip"
       additional_iam_policies = [
       ]
     },
     twitch-api-get-users = {
-      filename = "../modules/lambda/default.zip"
+      filename = "../../modules/aws/lambda/default.zip"
       additional_iam_policies = [
       ]
     },
     twitch-api-get-users = {
-      filename = "../modules/lambda/default.zip"
+      filename = "../../modules/aws/lambda/default.zip"
       additional_iam_policies = [
       ]
     },
@@ -66,7 +66,7 @@ module "lambda_functions" {
       ]
     },
     twitch-api-get-games-followers = {
-      filename = "../modules/lambda/default.zip"
+      filename = "../../modules/aws/lambda/default.zip"
       additional_iam_policies = [
       ]
     },

@@ -1,5 +1,5 @@
 module "schedulers" {
-  source = "../modules/eventbridge/scheduler"
+  source = "../../modules/aws/eventbridge/scheduler"
 
   schedules = {
     twitch-rotation = {

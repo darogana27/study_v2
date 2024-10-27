@@ -1,7 +1,6 @@
 variable "dynamodbs" {
   description = "DynamoDBの作成"
   type = map(object({
-    name           = string
     billing_mode   = string
     hash_key       = string
     range_key      = optional(string)
