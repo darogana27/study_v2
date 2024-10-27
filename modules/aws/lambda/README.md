@@ -13,7 +13,6 @@
 resource "aws_lambda_function" "it" {
   for_each = var.lambda_functions
 
-  function_name                  = format("%s-function", each.value.function_name)
   role                           = aws_iam_role.it[each.key].arn
   description                    = each.value.description
   runtime                        = each.value.filename == null ? null : each.value.runtime
@@ -29,7 +28,7 @@ resource "aws_lambda_function" "it" {
     size = each.value.size
   }
   tags = {
-    Name = each.value.function_name
+    Name = each.key
   }
 
   depends_on = [aws_cloudwatch_log_group.it]
@@ -38,20 +37,20 @@ resource "aws_lambda_function" "it" {
 resource "aws_cloudwatch_log_group" "it" {
   for_each = var.lambda_functions
 
-  name              = "/aws/lambda/${each.value.function_name}-function"
+  name              = "/aws/lambda/${each.key}-function"
   retention_in_days = 30
   tags = {
-    Name = each.value.function_name
+    Name = each.key
   }
 }
 
 resource "aws_iam_role" "it" {
   for_each = var.lambda_functions
 
-  name               = format("%s-function-role", each.value.function_name)
+  name               = format("%s-function-role", each.key)
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
   tags = {
-    Name = each.value.function_name
+    Name = each.key
   }
 }
 
@@ -65,7 +64,7 @@ resource "aws_iam_role_policy_attachment" "it" {
 resource "aws_iam_policy" "it" {
   for_each = var.lambda_functions
 
-  name = format("%s-function-policy", each.value.function_name)
+  name = format("%s-function-policy", each.key)
 
   policy = jsonencode({
     Version = "2012-10-17",
@@ -95,7 +94,6 @@ resource "aws_iam_policy" "it" {
 
 各変数の詳細な設定項目は以下の通りです:
 
-- `function_name`: Lambda関数の名前 (string, 必須)
 - `filename`: Lambda関数のコードが格納されたファイル (optional(string, null))
 - `handler`: Lambda関数のハンドラー (optional(string, "lambda_function.lambda_handler"))
 - `runtime`: Lambda関数のランタイム (optional(string, "python3.12"))

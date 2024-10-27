@@ -1,7 +1,6 @@
 variable "state_machine" {
   description = "ステートマシン作成に必要な設定"
   type = map(object({
-    name       = string
     definition = optional(string)
     additional_policies = optional(list(object({
       effect    = string

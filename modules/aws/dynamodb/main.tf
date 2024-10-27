@@ -1,7 +1,7 @@
 resource "aws_dynamodb_table" "it" {
   for_each = var.dynamodbs
 
-  name         = format("%s-table", each.value.name)
+  name         = format("%s-table", each.key)
   billing_mode = each.value.billing_mode
   hash_key     = each.value.hash_key
   range_key    = lookup(each.value, "range_key", null)
@@ -17,7 +17,7 @@ resource "aws_dynamodb_table" "it" {
   dynamic "global_secondary_index" {
     for_each = lookup(each.value, "global_secondary_indexes", [])
     content {
-      name               = global_secondary_index.value.name
+      name               = global_secondary_index.key
       hash_key           = global_secondary_index.value.hash_key
       range_key          = lookup(global_secondary_index.value, "range_key", null)
       projection_type    = global_secondary_index.value.projection_type
@@ -39,7 +39,7 @@ resource "aws_dynamodb_table" "it" {
   write_capacity = each.value.billing_mode == "PROVISIONED" ? lookup(each.value, "write_capacity", 1) : null
 
   tags = {
-    Name = each.value.name
+    Name = each.key
   }
 
   lifecycle {

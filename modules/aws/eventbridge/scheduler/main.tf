@@ -1,7 +1,7 @@
 resource "aws_scheduler_schedule" "it" {
   for_each = var.schedules
 
-  name       = format("%s-scheduler", each.value.schedule_name)
+  name       = format("%s-scheduler", each.key)
   group_name = aws_scheduler_schedule_group.it[each.key].name
 
   flexible_time_window {
@@ -25,13 +25,13 @@ resource "aws_scheduler_schedule" "it" {
 resource "aws_scheduler_schedule_group" "it" {
   for_each = var.schedules
 
-  name = format("%s-scheduler-group", each.value.schedule_name)
+  name = format("%s-scheduler-group", each.key)
 }
 
 resource "aws_iam_role" "it" {
   for_each = var.schedules
 
-  name = format("%s-schedule-role", each.value.schedule_name)
+  name = format("%s-schedule-role", each.key)
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -50,7 +50,7 @@ resource "aws_iam_role" "it" {
 resource "aws_iam_role_policy" "it" {
   for_each = var.schedules
 
-  name = format("%s-scheduler-policy", each.value.schedule_name)
+  name = format("%s-scheduler-policy", each.key)
   role = aws_iam_role.it[each.key].id
   policy = jsonencode({
     Version = "2012-10-17",
@@ -65,13 +65,13 @@ resource "aws_iam_role_policy" "it" {
             "states:GetExecutionHistory"
           ],
           Resource = [
-            "arn:aws:states:${var.region}:${var.account_id}:stateMachine:${each.value.schedule_name}-state-machine"
+            "arn:aws:states:${var.region}:${var.account_id}:stateMachine:${each.key}-state-machine"
           ]
         },
         {
           Effect = "Allow"
           Action = ["lambda:InvokeFunction"]
-          Resource = ["arn:aws:lambda:${var.region}:${var.account_id}:function:${each.value.schedule_name}-*"]
+          Resource = ["arn:aws:lambda:${var.region}:${var.account_id}:function:${each.key}-*"]
         }
       ],
       [

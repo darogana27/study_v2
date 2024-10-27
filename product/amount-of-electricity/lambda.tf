@@ -1,11 +1,10 @@
 module "lambda_functions" {
-  source = "../modules/lambda"
+  source = "../../modules/aws/lambda"
 
   lambda_functions = {
     daily_electricity = {
-      function_name = "daily_electricity"
-      image_uri     = data.aws_ssm_parameter.ecr_daily_electricity_image_url.value
-      memory_size   = 512
+      image_uri   = data.aws_ssm_parameter.ecr_daily_electricity_image_url.value
+      memory_size = 512
       additional_iam_policies = [
         {
           effect    = "Allow"
@@ -13,14 +12,14 @@ module "lambda_functions" {
           resources = ["arn:aws:s3:::amount-of-electricity-bucket/*"]
         },
         {
-          effect    = "Allow"
-          actions   = [
+          effect = "Allow"
+          actions = [
             "dynamodb:PutItem",
             "dynamodb:UpdateItem",
             "dynamodb:GetItem",
             "dynamodb:Query",
             "dynamodb:Scan",
-            ]
+          ]
           resources = ["arn:aws:dynamodb:${local.env.region}:${local.env.account_id}:table/amount-of-electricity-table"]
         },
       ]
@@ -35,11 +34,11 @@ module "lambda_functions" {
           resources = ["arn:aws:s3:::amount-of-electricity-bucket/*"]
         },
         {
-          effect    = "Allow"
-          actions   = [
+          effect = "Allow"
+          actions = [
             "dynamodb:GetItem",
             "dynamodb:Query"
-            ]
+          ]
           resources = ["arn:aws:dynamodb:${local.env.region}:${local.env.account_id}:table/amount-of-electricity-table"]
         },
       ]
@@ -48,7 +47,7 @@ module "lambda_functions" {
 }
 
 output "lambda_arns" {
-  value       = module.lambda_functions.lambda_arns
+  value       = module.lambda_functions.arns
   description = "各Lambda関数のARN"
 }
 

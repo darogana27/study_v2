@@ -1,7 +1,7 @@
 resource "aws_sfn_state_machine" "it" {
   for_each = var.state_machine
 
-  name       = "${each.value.name}-state-machine"
+  name       = "${each.key}-state-machine"
   role_arn   = aws_iam_role.it[each.key].arn
   definition = each.value.definition
 }
@@ -9,7 +9,7 @@ resource "aws_sfn_state_machine" "it" {
 resource "aws_iam_role" "it" {
   for_each = var.state_machine
 
-  name = format("%s_step_function_role", each.value.name)
+  name = format("%s_step_function_role", each.key)
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
@@ -27,7 +27,7 @@ resource "aws_iam_role" "it" {
 resource "aws_iam_role_policy" "it" {
   for_each = var.state_machine
 
-  name = format("%s_step_function_policy", each.value.name)
+  name = format("%s_step_function_policy", each.key)
   role = aws_iam_role.it[each.key].id
   policy = jsonencode({
     Version = "2012-10-17",
@@ -42,7 +42,7 @@ resource "aws_iam_role_policy" "it" {
             "states:GetExecutionHistory"
           ],
           Resource = [
-            "arn:aws:states:${var.region}:${var.account_id}:stateMachine:${each.value.name}-state-machine"
+            "arn:aws:states:${var.region}:${var.account_id}:stateMachine:${each.key}-state-machine"
           ]
         }
       ],

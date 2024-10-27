@@ -1,5 +1,5 @@
 module "s3_bucket" {
-  source = "../modules/s3"
+  source = "../../modules/aws/s3"
   s3_bucket = {
     twitch-api-data-storage = {
       s3_bucket_name = "twitch-api-data-storage"

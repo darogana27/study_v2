@@ -1,7 +1,6 @@
 variable "lambda_functions" {
   description = "Lambda関数の設定をマップで定義します"
   type = map(object({
-    function_name                  = string                                             # Lambda関数の名前
     filename                       = optional(string, null)                             # Lambda関数のコードが格納されたファイル
     handler                        = optional(string, "lambda_function.lambda_handler") # Lambda関数のハンドラー
     runtime                        = optional(string, "python3.12")                     # Lambda関数のランタイム

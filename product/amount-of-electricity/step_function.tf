@@ -1,14 +1,13 @@
 locals {
-  daily_electricity_arn = module.lambda_functions.lambda_arns["daily_electricity"]
-  line_notify_arn       = module.lambda_functions.lambda_arns["line_notify"]
+  daily_electricity_arn = module.lambda_functions.arns["daily_electricity"]
+  line_notify_arn       = module.lambda_functions.arns["line_notify"]
 }
 
 module "state_machines" {
-  source = "../modules/step_function"
+  source = "../../modules/aws/step_function"
 
   state_machine = {
     amount-of-electricity = {
-      name = "amount-of-electricity"
       definition = jsonencode({
         Comment = "A description of my state machine",
         StartAt = "Daily_Electricity",
@@ -23,13 +22,13 @@ module "state_machines" {
             },
             Retry = [
               {
-                ErrorEquals     = [
+                ErrorEquals = [
                   "Lambda.ServiceException",
                   "Lambda.AWSLambdaException",
                   "Lambda.SdkClientException",
                   "Lambda.TooManyRequestsException",
                   "CustomError"
-                  ],
+                ],
                 IntervalSeconds = 1,
                 MaxAttempts     = 3,
                 BackoffRate     = 2,
@@ -40,8 +39,8 @@ module "state_machines" {
               {
                 ErrorEquals = [
                   "States.ALL",
-                  ],
-                Next        = "Retry_Daily_Electricity"
+                ],
+                Next = "Retry_Daily_Electricity"
               }
             ],
             Next = "Line_Notify"
@@ -56,13 +55,13 @@ module "state_machines" {
             },
             Retry = [
               {
-                ErrorEquals     = [
+                ErrorEquals = [
                   "Lambda.ServiceException",
-                  "Lambda.AWSLambdaException", 
-                  "Lambda.SdkClientException", 
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException",
                   "Lambda.TooManyRequestsException",
                   "CustomError"
-                  ],
+                ],
                 IntervalSeconds = 1,
                 MaxAttempts     = 3,
                 BackoffRate     = 2,
@@ -81,13 +80,13 @@ module "state_machines" {
             },
             Retry = [
               {
-                ErrorEquals     = [
+                ErrorEquals = [
                   "Lambda.ServiceException",
                   "Lambda.AWSLambdaException",
                   "Lambda.SdkClientException",
                   "Lambda.TooManyRequestsException",
                   "CustomError"
-                  ],
+                ],
                 IntervalSeconds = 1,
                 MaxAttempts     = 3,
                 BackoffRate     = 2,

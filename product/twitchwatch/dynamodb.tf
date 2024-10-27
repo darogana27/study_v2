@@ -1,17 +1,16 @@
 module "dynamodb" {
-  source = "../modules/dynamodb"
+  source = "../../modules/aws/dynamodb"
   dynamodbs = {
-    amount-of-electricity = {
-      name           = "amount-of-electricity"
+    twitch-get-games = {
       billing_mode   = "PROVISIONED"
-      hash_key       = "YearMonth"
-      range_key      = "Day"
+      hash_key       = "user_id"
+      range_key      = "started_at"
       read_capacity  = 5
       write_capacity = 5
       hash_key_type  = "S"
       attributes = [
-        { name = "YearMonth", type = "S" },
-        { name = "Day", type = "S" },
+        { name = "user_id", type = "S" },
+        { name = "started_at", type = "S" }
       ]
       ttl = {
         attribute_name = "TimeToExist"
