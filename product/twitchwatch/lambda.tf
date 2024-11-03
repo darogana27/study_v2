@@ -28,26 +28,22 @@ module "lambda_functions" {
         },
       ]
     },
-    twitch-api-data-collector = {
-      filename = "./lambda/twitch-api-data-collector.zip"
+    twitch-api-get-stremers = {
+      filename    = "../../modules/aws/lambda/default.zip"
+      memory_size = 512
       additional_iam_policies = [
-        {
-          effect : "Allow",
-          actions : [
-            "s3:PutObject",
-            "s3:PutObjectAcl",
-            "s3:ListBucket"
-          ],
-          resources : [
-            "arn:aws:s3:::twitch-api-data-storage-bucket",
-            "arn:aws:s3:::twitch-api-data-storage-bucket/*"
-          ]
-        },
-      ]
-    },
-    twitch-api-get-stream = {
-      filename = "../../modules/aws/lambda/default.zip"
-      additional_iam_policies = [
+        # {
+        #   effect : "Allow",
+        #   actions : [
+        #     "s3:PutObject",
+        #     "s3:PutObjectAcl",
+        #     "s3:ListBucket"
+        #   ],
+        #   resources : [
+        #     "arn:aws:s3:::twitch-api-data-storage-bucket",
+        #     "arn:aws:s3:::twitch-api-data-storage-bucket/*"
+        #   ]
+        # },
         {
           effect : "Allow",
           actions : [
@@ -57,11 +53,6 @@ module "lambda_functions" {
             "*"
           ]
         },
-      ]
-    },
-    twitch-api-get-users = {
-      filename = "../../modules/aws/lambda/default.zip"
-      additional_iam_policies = [
       ]
     },
     twitch-api-get-users = {
