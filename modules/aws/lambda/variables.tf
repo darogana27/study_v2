@@ -11,6 +11,7 @@ variable "lambda_functions" {
     image_uri                      = optional(string, null)                             # Lambda関数のイメージURI
     publish                        = optional(bool, false)                              # Lambda関数の公開設定
     reserved_concurrent_executions = optional(number, -1)                               # Lambda関数の予約済みの同時実行数
+    need_sqs_trigger               = optional(bool, false)
     iam_policies = optional(list(object({
       effect    = string       # IAMポリシーの効果（AllowまたはDeny）
       actions   = list(string) # 許可するアクションのリスト
