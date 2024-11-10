@@ -65,20 +65,64 @@ resource "aws_iam_policy" "it" {
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = concat(
+      # `need_sqs_trigger` が true の場合のみ SQS パーミッションを追加
+      each.value.need_sqs_trigger ? [
+        {
+          Effect   = "Allow",
+          Action   = ["sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes"],
+          Resource = module.sqs_queues[each.key].arn[each.key] # シンプルなリスト参照
+        }
+      ] : [],
+      # 他の IAM ポリシー
       [
         for p in coalesce(each.value.iam_policies, []) : {
-          Effect   = p.effect
-          Action   = p.actions
+          Effect   = p.effect,
+          Action   = p.actions,
           Resource = p.resources
         }
       ],
       [
         for p in coalesce(each.value.additional_iam_policies, []) : {
-          Effect   = p.effect
-          Action   = p.actions
+          Effect   = p.effect,
+          Action   = p.actions,
           Resource = p.resources
         }
       ]
     )
   })
+}
+
+# Lambda関数ごとにSQSモジュールを呼び出し
+module "sqs_queues" {
+  source = "../sqs"
+
+  for_each = {
+    for key, lf in var.lambda_functions : key => lf
+    if lf.need_sqs_trigger
+  }
+
+  sqs = {
+    for key, lf in var.lambda_functions : key => lf
+    if lf.need_sqs_trigger
+  }
+
+  visibility_timeout_seconds = each.value.timeout
+}
+
+# SQSトリガーをLambdaに紐付ける (SQSキューが作成された場合のみ)
+resource "aws_lambda_event_source_mapping" "it" {
+  for_each = {
+    for key, lf in var.lambda_functions : key => lf
+    if lf.need_sqs_trigger
+  }
+
+  # 各 SQS キューの ARN を取得
+  event_source_arn = module.sqs_queues[each.key].arn[each.key]
+  function_name    = aws_lambda_function.it[each.key].arn
+
+  depends_on = [
+    aws_iam_policy.it,
+    aws_iam_role_policy_attachment.it,
+    module.sqs_queues
+  ]
 }

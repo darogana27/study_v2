@@ -56,6 +56,24 @@ module "lambda_functions" {
       ]
       timeout = 600
     },
+    twitch-api-get-stremers-put = {
+      filename    = "../../modules/aws/lambda/default.zip"
+      memory_size = 512
+      additional_iam_policies = [
+        {
+          effect : "Allow",
+          actions : [
+            "dynamodb:*"
+          ],
+          resources : [
+            "*"
+          ]
+        },
+      ]
+      timeout          = 600
+      need_sqs_trigger = true
+    },
+
     twitch-api-get-users = {
       filename = "../../modules/aws/lambda/default.zip"
       additional_iam_policies = [
@@ -78,5 +96,3 @@ output "arns" {
   value       = module.lambda_functions.arns
   description = "各Lambda関数のARN"
 }
-
-
