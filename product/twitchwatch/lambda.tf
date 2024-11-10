@@ -54,22 +54,23 @@ module "lambda_functions" {
           ]
         },
       ]
+      timeout = 600
     },
     twitch-api-get-users = {
       filename = "../../modules/aws/lambda/default.zip"
       additional_iam_policies = [
       ]
     },
-    twitch-api-get-games = {
-      filename = "../modules/lambda/default.zip"
-      additional_iam_policies = [
-      ]
-    },
-    twitch-api-get-games-followers = {
-      filename = "../../modules/aws/lambda/default.zip"
-      additional_iam_policies = [
-      ]
-    },
+    # twitch-api-get-games = {
+    #   filename = "../modules/lambda/default.zip"
+    #   additional_iam_policies = [
+    #   ]
+    # },
+    # twitch-api-get-games-followers = {
+    #   filename = "../../modules/aws/lambda/default.zip"
+    #   additional_iam_policies = [
+    #   ]
+    # },
   }
 }
 
