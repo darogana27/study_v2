@@ -25,7 +25,8 @@ resource "aws_lambda_function" "it" {
 
   lifecycle {
     ignore_changes = [
-      "layers"
+      "layers",
+      "image_uri"
     ]
   }
 }
