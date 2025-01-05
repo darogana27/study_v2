@@ -115,8 +115,3 @@ module "state_machines" {
   account_id = data.aws_caller_identity.self.account_id
   region     = data.aws_region.self.name
 }
-
-output "state_machine_arns" {
-  description = "List of state machine ARNs"
-  value       = module.state_machines.state_machine_arns
-}
