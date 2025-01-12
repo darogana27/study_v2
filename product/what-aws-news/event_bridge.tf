@@ -1,9 +1,12 @@
 module "schedulers" {
-  source = "../../modules/aws/eventbridge/scheduler"
-
+  source  = "../../modules/aws/eventbridge/scheduler"
+  product = local.env.product
   schedules = {
-    what-aws-news = {
-      target_arn = module.state_machines.state_machine_arns[0]
+    translate = {
+      use_step_function = true
+    },
+    get_all_tag_services = {
+      use_step_function = true
     },
   }
   account_id = data.aws_caller_identity.self.account_id

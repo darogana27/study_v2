@@ -1,8 +1,7 @@
 resource "aws_scheduler_schedule" "it" {
-  for_each = var.schedules
-
-  name       = format("%s-scheduler", each.key)
-  group_name = aws_scheduler_schedule_group.it[each.key].name
+  for_each   = var.schedules
+  name       = format("%s-%s-scheduler", var.product, each.key)
+  group_name = aws_scheduler_schedule_group.it.name
 
   flexible_time_window {
     mode = each.value.flexible_time_window
@@ -12,7 +11,7 @@ resource "aws_scheduler_schedule" "it" {
   schedule_expression_timezone = "Japan"
 
   target {
-    arn      = each.value.target_arn
+    arn      = each.value.use_step_function ? module.state_machines[each.key].state_machine_arns[keys(module.state_machines[each.key].state_machine_arns)[0]] : each.value.target_arn
     role_arn = aws_iam_role.it[each.key].arn
 
     input = length(each.value.input_message_body) > 0 && length(each.value.input_queue_url) > 0 ? jsonencode({
@@ -23,15 +22,14 @@ resource "aws_scheduler_schedule" "it" {
 }
 
 resource "aws_scheduler_schedule_group" "it" {
-  for_each = var.schedules
-
-  name = format("%s-scheduler-group", each.key)
+  name = format("%s-scheduler-group", var.product
+  )
 }
 
 resource "aws_iam_role" "it" {
   for_each = var.schedules
 
-  name = format("%s-schedule-role", each.key)
+  name = format("%s-%s-schedule-role", var.product, each.key)
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -50,7 +48,7 @@ resource "aws_iam_role" "it" {
 resource "aws_iam_role_policy" "it" {
   for_each = var.schedules
 
-  name = format("%s-scheduler-policy", each.key)
+  name = format("%s-%s-scheduler-policy", var.product, each.key)
   role = aws_iam_role.it[each.key].id
   policy = jsonencode({
     Version = "2012-10-17",
@@ -69,8 +67,8 @@ resource "aws_iam_role_policy" "it" {
           ]
         },
         {
-          Effect = "Allow"
-          Action = ["lambda:InvokeFunction"]
+          Effect   = "Allow"
+          Action   = ["lambda:InvokeFunction"]
           Resource = ["arn:aws:lambda:${var.region}:${var.account_id}:function:${each.key}-*"]
         }
       ],
@@ -83,4 +81,34 @@ resource "aws_iam_role_policy" "it" {
       ]
     )
   })
+}
+
+module "state_machines" {
+  source = "../../step_function"
+
+  for_each = {
+    for k, v in var.schedules : k => v
+    if v.use_step_function
+  }
+
+  product = var.product
+  state_machine = {
+    # scheduleのkeyを使用して動的に生成
+    "${each.key}" = {
+      additional_policies = [
+        {
+          effect = "Allow"
+          actions = [
+            "lambda:InvokeFunction",
+          ]
+          resources = [
+            "arn:aws:lambda:${var.region}:${var.account_id}:function:*"
+          ]
+        }
+      ]
+    }
+  }
+
+  account_id = var.account_id
+  region     = var.region
 }
