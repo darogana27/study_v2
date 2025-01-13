@@ -1,3 +1,8 @@
+variable "product" {
+  description = "product名"
+  type        = string
+}
+
 variable "dynamodbs" {
   description = "DynamoDBの作成"
   type = map(object({
@@ -19,7 +24,7 @@ variable "dynamodbs" {
       write_capacity     = optional(number)
       projection_type    = string
       non_key_attributes = optional(list(string))
-    })),[])
+    })), [])
     ttl = optional(object({
       attribute_name = string
       enabled        = bool
