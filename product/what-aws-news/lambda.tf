@@ -17,6 +17,13 @@ module "lambda_functions" {
           ]
           resources = ["arn:aws:dynamodb:${local.env.region}:${local.env.account_id}:table/${local.env.product}*"]
         },
+        {
+          effect = "Allow"
+          actions = [
+            "bedrock:InvokeModel",
+          ]
+          resources = ["arn:aws:bedrock:${local.env.region}::foundation-model/anthropic.claude*"]
+        }
       ]
     }
     get_all_tag_services = {
@@ -39,7 +46,7 @@ module "lambda_functions" {
             "iam:GetServiceLastAccessedDetails"
           ]
           resources = ["*"]
-        }
+        },
       ]
     },
   }
