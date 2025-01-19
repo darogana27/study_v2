@@ -1,9 +1,12 @@
+variable "product" {}
+
 variable "schedules" {
   description = "スケジュールのリスト"
   type = map(object({
+    use_step_function    = optional(bool, false)
     flexible_time_window = optional(string, "OFF")
     schedule_expression  = optional(string, "cron(0 21 * * ? *)")
-    target_arn           = string
+    target_arn           = optional(string)
     input_message_body   = optional(string, "")
     input_queue_url      = optional(string, "")
     additional_policies = optional(list(object({

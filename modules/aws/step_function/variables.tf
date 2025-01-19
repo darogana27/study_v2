@@ -1,13 +1,6 @@
-variable "state_machine" {
-  description = "ステートマシン作成に必要な設定"
-  type = map(object({
-    definition = optional(string)
-    additional_policies = optional(list(object({
-      effect    = string
-      actions   = list(string)
-      resources = list(string)
-    })), [])
-  }))
+variable "product" {
+  description = "product名"
+  type        = string
 }
 
 variable "account_id" {
@@ -18,4 +11,16 @@ variable "account_id" {
 variable "region" {
   description = "AWSリージョン"
   type        = string
+}
+
+variable "state_machine" {
+  description = "ステートマシン作成に必要な設定"
+  type = map(object({
+    definition = optional(any)
+    additional_policies = optional(list(object({
+      effect    = string
+      actions   = list(string)
+      resources = list(string)
+    })), [])
+  }))
 }

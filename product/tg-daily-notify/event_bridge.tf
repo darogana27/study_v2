@@ -1,9 +1,12 @@
 module "schedulers" {
   source = "../../modules/aws/eventbridge/scheduler"
 
+  product = local.env.product
+
   schedules = {
-    tg-daily-notify = {
-      target_arn = module.state_machines.state_machine_arns[0]
+    line_notify = {
+      use_step_function = true
+
     },
   }
   account_id = data.aws_caller_identity.self.account_id

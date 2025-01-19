@@ -1,15 +1,42 @@
+locals {
+
+  default_definition = jsonencode({
+    Comment = "Default state machine"
+    StartAt = "DefaultWaitState"
+    States = {
+      DefaultWaitState = {
+        Type    = "Wait"
+        Seconds = 60
+        End     = true
+      }
+    }
+  })
+
+  state_machine_definitions = {
+    for k, v in var.state_machine : k => (
+      v.definition != null ? jsonencode(v.definition) : local.default_definition
+    )
+  }
+}
+
 resource "aws_sfn_state_machine" "it" {
   for_each = var.state_machine
 
-  name       = "${each.key}-state-machine"
+  name       = format("%s-%s-scheduler", var.product, each.key)
   role_arn   = aws_iam_role.it[each.key].arn
-  definition = each.value.definition
+  definition = local.state_machine_definitions[each.key]
+
+  lifecycle {
+    ignore_changes = [
+      definition
+    ]
+  }
 }
 
 resource "aws_iam_role" "it" {
   for_each = var.state_machine
 
-  name = format("%s_step_function_role", each.key)
+  name = format("%s-%s-step-function-role", var.product, each.key)
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
@@ -27,7 +54,7 @@ resource "aws_iam_role" "it" {
 resource "aws_iam_role_policy" "it" {
   for_each = var.state_machine
 
-  name = format("%s_step_function_policy", each.key)
+  name = format("%s-%s-step-fuction-olicy", var.product, each.key)
   role = aws_iam_role.it[each.key].id
   policy = jsonencode({
     Version = "2012-10-17",

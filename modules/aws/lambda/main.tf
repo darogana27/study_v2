@@ -1,15 +1,20 @@
+variable "product" {
+  description = "product名"
+  type        = string
+}
+
 resource "aws_lambda_function" "it" {
   for_each = var.lambda_functions
 
-  function_name = format("%s-function", each.key)
+  function_name = format("%s-%s-function", var.product, each.key)
   role          = aws_iam_role.it[each.key].arn
   description   = each.value.description
-  runtime       = each.value.filename == null ? null : each.value.runtime
-  filename      = try(each.value.filename)
-  handler       = each.value.filename == null ? null : each.value.handler
+  runtime       = each.value.image_uri != null ? null : each.value.runtime
+  filename      = each.value.image_uri == null ? try(each.value.filename) : null
+  handler       = each.value.image_uri == null ? each.value.handler : null
   timeout       = each.value.timeout
-  # image_uriが存在する場合はその値を使用
-  image_uri                      = try(each.value.image_uri, null)
+  # image_uriはpackage_typeがImageの場合のみ設定
+  image_uri                      = each.value.image_uri != null ? each.value.image_uri : null
   package_type                   = each.value.image_uri != null ? "Image" : "Zip"
   publish                        = each.value.publish
   reserved_concurrent_executions = each.value.reserved_concurrent_executions
@@ -18,15 +23,16 @@ resource "aws_lambda_function" "it" {
     size = each.value.size
   }
   tags = {
-    Name = each.key
+    Name    = each.key
+    product = var.product
   }
 
   depends_on = [aws_cloudwatch_log_group.it]
 
   lifecycle {
     ignore_changes = [
-      "layers",
-      "image_uri"
+      layers,
+      image_uri
     ]
   }
 }
@@ -34,7 +40,7 @@ resource "aws_lambda_function" "it" {
 resource "aws_cloudwatch_log_group" "it" {
   for_each = var.lambda_functions
 
-  name              = "/aws/lambda/${each.key}-function"
+  name              = "/aws/lambda/${var.product}-${each.key}-function"
   retention_in_days = 30
   tags = {
     Name = each.key
@@ -44,7 +50,7 @@ resource "aws_cloudwatch_log_group" "it" {
 resource "aws_iam_role" "it" {
   for_each = var.lambda_functions
 
-  name               = format("%s-function-role", each.key)
+  name               = format("%s-%s-function-role", var.product, each.key)
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
   tags = {
     Name = each.key
@@ -61,7 +67,7 @@ resource "aws_iam_role_policy_attachment" "it" {
 resource "aws_iam_policy" "it" {
   for_each = var.lambda_functions
 
-  name = format("%s-function-policy", each.key)
+  name = format("%s-%s-function-policy", var.product, each.key)
 
   policy = jsonencode({
     Version = "2012-10-17",
@@ -97,6 +103,8 @@ resource "aws_iam_policy" "it" {
 module "sqs_queues" {
   source = "../sqs"
 
+  product = var.product
+
   for_each = {
     for key, lf in var.lambda_functions : key => lf
     if lf.need_sqs_trigger
@@ -122,6 +130,7 @@ resource "aws_lambda_event_source_mapping" "it" {
   function_name    = aws_lambda_function.it[each.key].arn
 
   depends_on = [
+
     aws_iam_policy.it,
     aws_iam_role_policy_attachment.it,
     module.sqs_queues

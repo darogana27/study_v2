@@ -1,7 +1,7 @@
 resource "aws_dynamodb_table" "it" {
   for_each = var.dynamodbs
 
-  name         = format("%s-table", each.key)
+  name         = format("%s-%s-table", var.product, each.key)
   billing_mode = each.value.billing_mode
   hash_key     = each.value.hash_key
   range_key    = lookup(each.value, "range_key", null)
@@ -37,10 +37,6 @@ resource "aws_dynamodb_table" "it" {
 
   read_capacity  = each.value.billing_mode == "PROVISIONED" ? lookup(each.value, "read_capacity", 1) : null
   write_capacity = each.value.billing_mode == "PROVISIONED" ? lookup(each.value, "write_capacity", 1) : null
-
-  tags = {
-    Name = each.key
-  }
 
   lifecycle {
     ignore_changes = [read_capacity, write_capacity]
