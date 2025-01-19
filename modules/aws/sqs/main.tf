@@ -1,3 +1,8 @@
+variable "product" {
+  description = "product名"
+  type        = string
+}
+
 resource "aws_sqs_queue" "it" {
   for_each                   = var.sqs
   name                       = format("%s-queue", each.key)
@@ -21,7 +26,9 @@ resource "aws_sqs_queue" "deadletter" {
   name     = format("%s-queue_deadletter", each.key)
 
   tags = {
-    Name = each.key
+    Name    = each.key
+    product = var.product
+
   }
 }
 

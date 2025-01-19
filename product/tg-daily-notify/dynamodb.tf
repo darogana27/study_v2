@@ -1,8 +1,10 @@
 module "dynamodb" {
   source = "../../modules/aws/dynamodb"
+
+  product = local.env.product
+
   dynamodbs = {
-    tg-daily-notify = {
-      name         = "tg-daily-notify"
+    electricity = {
       billing_mode = "PAY_PER_REQUEST"
       hash_key     = "YYYYMMDD"
       range_key    = "ElectricityUsage"

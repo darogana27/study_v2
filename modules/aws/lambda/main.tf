@@ -9,12 +9,12 @@ resource "aws_lambda_function" "it" {
   function_name = format("%s-%s-function", var.product, each.key)
   role          = aws_iam_role.it[each.key].arn
   description   = each.value.description
-  runtime       = each.value.filename == null ? null : each.value.runtime
-  filename      = try(each.value.filename)
-  handler       = each.value.filename == null ? null : each.value.handler
+  runtime       = each.value.image_uri != null ? null : each.value.runtime
+  filename      = each.value.image_uri == null ? try(each.value.filename) : null
+  handler       = each.value.image_uri == null ? each.value.handler : null
   timeout       = each.value.timeout
-  # image_uriが存在する場合はその値を使用
-  image_uri                      = try(each.value.image_uri, null)
+  # image_uriはpackage_typeがImageの場合のみ設定
+  image_uri                      = each.value.image_uri != null ? each.value.image_uri : null
   package_type                   = each.value.image_uri != null ? "Image" : "Zip"
   publish                        = each.value.publish
   reserved_concurrent_executions = each.value.reserved_concurrent_executions
@@ -23,15 +23,16 @@ resource "aws_lambda_function" "it" {
     size = each.value.size
   }
   tags = {
-    Name = each.key
+    Name    = each.key
+    product = var.product
   }
 
   depends_on = [aws_cloudwatch_log_group.it]
 
   lifecycle {
     ignore_changes = [
-      "layers",
-      "image_uri"
+      layers,
+      image_uri
     ]
   }
 }
@@ -101,6 +102,8 @@ resource "aws_iam_policy" "it" {
 # Lambda関数ごとにSQSモジュールを呼び出し
 module "sqs_queues" {
   source = "../sqs"
+
+  product = var.product
 
   for_each = {
     for key, lf in var.lambda_functions : key => lf

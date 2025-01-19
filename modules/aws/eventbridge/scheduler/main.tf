@@ -63,13 +63,13 @@ resource "aws_iam_role_policy" "it" {
             "states:GetExecutionHistory"
           ],
           Resource = [
-            "arn:aws:states:${var.region}:${var.account_id}:stateMachine:${each.key}-state-machine"
+            "arn:aws:states:${var.region}:${var.account_id}:stateMachine:${var.product}*"
           ]
         },
         {
           Effect   = "Allow"
           Action   = ["lambda:InvokeFunction"]
-          Resource = ["arn:aws:lambda:${var.region}:${var.account_id}:function:${each.key}-*"]
+          Resource = ["arn:aws:lambda:${var.region}:${var.account_id}:function:${var.product}*"]
         }
       ],
       [
@@ -102,7 +102,7 @@ module "state_machines" {
             "lambda:InvokeFunction",
           ]
           resources = [
-            "arn:aws:lambda:${var.region}:${var.account_id}:function:*"
+            "arn:aws:lambda:${var.region}:${var.account_id}:function:${var.product}*"
           ]
         }
       ]
