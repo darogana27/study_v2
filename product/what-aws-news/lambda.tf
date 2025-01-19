@@ -5,6 +5,7 @@ module "lambda_functions" {
   lambda_functions = {
     translate = {
       memory_size = 512
+      timeout     = 180
       additional_iam_policies = [
         {
           effect = "Allow"

@@ -3,7 +3,9 @@ module "schedulers" {
   product = local.env.product
   schedules = {
     translate = {
-      use_step_function = true
+      use_step_function   = true
+      schedule_expression = "cron(55 8 * * ? *)" # 毎日08時55分実行
+
     },
     get_all_tag_services = {
       use_step_function   = true
