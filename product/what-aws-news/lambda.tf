@@ -3,9 +3,29 @@ module "lambda_functions" {
 
   product = local.env.product
   lambda_functions = {
-    translate = {
+    fetch = {
       memory_size = 512
-      timeout     = 180
+      timeout     = 90
+      additional_iam_policies = [
+        {
+          effect = "Allow"
+          actions = [
+            "dynamodb:PutItem",
+          ]
+          resources = ["arn:aws:dynamodb:${local.env.region}:${local.env.account_id}:table/${local.env.product}*"]
+        },
+      ]
+    }
+    translate = {
+      memory_size      = 512
+      timeout          = 150
+      delay_seconds    = 90
+      need_sqs_trigger = true
+      sqs_config = {
+        delay_seconds    = 0
+        max_message_size = 262144
+      }
+      reserved_concurrent_executions = "1"
       additional_iam_policies = [
         {
           effect = "Allow"
@@ -13,6 +33,7 @@ module "lambda_functions" {
             "dynamodb:PutItem",
             "dynamodb:UpdateItem",
             "dynamodb:GetItem",
+            "dynamodb:DeleteItem",
             "dynamodb:Query",
             "dynamodb:Scan",
           ]
@@ -27,7 +48,7 @@ module "lambda_functions" {
         }
       ]
     }
-    get_all_tag_services = {
+    notify = {
       additional_iam_policies = [
         {
           effect = "Allow"

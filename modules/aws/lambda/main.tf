@@ -111,11 +111,13 @@ module "sqs_queues" {
   }
 
   sqs = {
-    for key, lf in var.lambda_functions : key => lf
-    if lf.need_sqs_trigger
+    (each.key) = merge(
+      try(each.value.sqs_config, {}),
+      {
+        visibility_timeout_seconds = each.value.timeout
+      }
+    )
   }
-
-  visibility_timeout_seconds = each.value.timeout
 }
 
 # SQSトリガーをLambdaに紐付ける (SQSキューが作成された場合のみ)
