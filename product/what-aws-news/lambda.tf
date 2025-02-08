@@ -5,7 +5,7 @@ module "lambda_functions" {
   lambda_functions = {
     fetch = {
       memory_size = 512
-      timeout     = 180
+      timeout     = 90
       additional_iam_policies = [
         {
           effect = "Allow"
@@ -17,8 +17,15 @@ module "lambda_functions" {
       ]
     }
     translate = {
-      memory_size = 512
-      timeout     = 180
+      memory_size      = 512
+      timeout          = 150
+      delay_seconds    = 90
+      need_sqs_trigger = true
+      sqs_config = {
+        delay_seconds    = 0
+        max_message_size = 262144
+      }
+      reserved_concurrent_executions = "1"
       additional_iam_policies = [
         {
           effect = "Allow"
@@ -39,7 +46,6 @@ module "lambda_functions" {
           resources = ["arn:aws:bedrock:${local.env.region}::foundation-model/anthropic.claude*"]
         }
       ]
-      need_sqs_trigger = true
     }
     notify = {
       additional_iam_policies = [

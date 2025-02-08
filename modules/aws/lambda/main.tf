@@ -111,9 +111,12 @@ module "sqs_queues" {
   }
 
   sqs = {
-    (each.key) = {
-      visibility_timeout_seconds = each.value.timeout
-    }
+    (each.key) = merge(
+      try(each.value.sqs_config, {}),
+      {
+        visibility_timeout_seconds = each.value.timeout
+      }
+    )
   }
 }
 

@@ -33,5 +33,12 @@ variable "lambda_functions" {
       actions   = list(string)
       resources = list(string)
     })), [])
+    sqs_config = optional(object({
+      delay_seconds             = optional(number, 90)
+      max_message_size          = optional(number, 2048)
+      message_retention_seconds = optional(number, 86400)
+      receive_wait_time_seconds = optional(number, 10)
+      # visibility_timeout_seconds はLambdaのtimeoutから自動設定
+    }))
   }))
 }
