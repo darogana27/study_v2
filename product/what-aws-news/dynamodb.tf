@@ -18,19 +18,11 @@ module "dynamodb" {
         attribute_name = "TimeToExist"
         enabled        = true
       }
-    },
-    all_tag_services = {
-      billing_mode = "PAY_PER_REQUEST"
-      hash_key     = "service_namespace"
-      # read_capacity  = 1
-      # write_capacity = 1
-      hash_key_type = "S"
-      attributes = [
-        { name = "service_namespace", type = "S" }, # パーティションキー属性
-      ]
-      ttl = {
-        attribute_name = "TimeToExist"
-        enabled        = true
+      global_secondary_indexes = {
+        "publish-date" = {
+          hash_key        = "公開日"
+          projection_type = "ALL"
+        }
       }
     },
   }

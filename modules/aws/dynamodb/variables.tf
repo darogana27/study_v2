@@ -16,15 +16,14 @@ variable "dynamodbs" {
       name = string
       type = string
     }))
-    global_secondary_indexes = optional(list(object({
-      name               = string
-      hash_key           = string
-      range_key          = optional(string)
-      read_capacity      = optional(number)
-      write_capacity     = optional(number)
-      projection_type    = string
+    global_secondary_indexes = optional(map(object({
+      hash_key        = string
+      range_key       = optional(string)
+      projection_type = string
       non_key_attributes = optional(list(string))
-    })), [])
+      read_capacity    = optional(number)
+      write_capacity   = optional(number)
+    })))
     ttl = optional(object({
       attribute_name = string
       enabled        = bool
