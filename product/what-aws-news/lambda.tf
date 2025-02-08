@@ -33,6 +33,7 @@ module "lambda_functions" {
             "dynamodb:PutItem",
             "dynamodb:UpdateItem",
             "dynamodb:GetItem",
+            "dynamodb:DeleteItem",
             "dynamodb:Query",
             "dynamodb:Scan",
           ]

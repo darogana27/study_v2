@@ -12,7 +12,8 @@ module "dynamodb" {
       hash_key_type = "S"
       attributes = [
         { name = "link", type = "S" }, # パーティションキー属性
-        { name = "公開日", type = "S" }   # ソートキー属性
+        { name = "公開日", type = "S" },  # ソートキー属性
+        { name = "取得日", type = "S" }   # GSIのパーティションキー属性を追加
       ]
       ttl = {
         attribute_name = "TimeToExist"
@@ -20,7 +21,7 @@ module "dynamodb" {
       }
       global_secondary_indexes = {
         "publish-date" = {
-          hash_key        = "公開日"
+          hash_key        = "取得日"
           projection_type = "ALL"
         }
       }
