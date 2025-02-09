@@ -42,3 +42,15 @@ resource "aws_dynamodb_table" "it" {
     ignore_changes = [read_capacity, write_capacity]
   }
 }
+
+resource "aws_ssm_parameter" "dynamodb_table_name" {
+  for_each = var.dynamodbs
+  name     = format("/%s/dynamodb/%s/table-name", var.product, each.key)
+  type     = "String"
+  value    = aws_dynamodb_table.it[each.key].name
+  
+  tags = {
+    Name    = each.key
+    product = var.product
+  }
+}

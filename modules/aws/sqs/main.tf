@@ -56,3 +56,28 @@ resource "aws_sqs_queue_policy" "it" {
 
   depends_on = [aws_sqs_queue.it] # SQSキューが先に作成されるよう依存関係を設定
 }
+
+resource "aws_ssm_parameter" "sqs_url" {
+  for_each = var.sqs
+  name     = format("/%s/sqs/%s/url", var.product, each.key)
+  type     = "String"
+  value    = aws_sqs_queue.it[each.key].url
+  
+  tags = {
+    Name    = each.key
+    product = var.product
+  }
+}
+
+# デッドレターキューの URL も保存する場合は以下も追加
+resource "aws_ssm_parameter" "deadletter_sqs_url" {
+  for_each = var.sqs
+  name     = format("/%s/sqs/%s/deadletter/url", var.product, each.key)
+  type     = "String"
+  value    = aws_sqs_queue.deadletter[each.key].url
+  
+  tags = {
+    Name    = each.key
+    product = var.product
+  }
+}
