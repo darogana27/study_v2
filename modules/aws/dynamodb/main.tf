@@ -15,7 +15,7 @@ resource "aws_dynamodb_table" "it" {
   }
 
   dynamic "global_secondary_index" {
-    for_each = lookup(each.value, "global_secondary_indexes", []) != null ? each.value.global_secondary_indexes : []
+    for_each = lookup(each.value, "global_secondary_indexes", {}) != null ? each.value.global_secondary_indexes : {}
     content {
       name               = global_secondary_index.key
       hash_key           = global_secondary_index.value.hash_key
@@ -41,6 +41,11 @@ resource "aws_dynamodb_table" "it" {
   lifecycle {
     ignore_changes = [read_capacity, write_capacity]
   }
+
+  tags = {
+    Name    = "${var.product}-${each.key}"
+    product = var.product
+  }
 }
 
 resource "aws_ssm_parameter" "dynamodb_table_name" {
@@ -50,7 +55,7 @@ resource "aws_ssm_parameter" "dynamodb_table_name" {
   value    = aws_dynamodb_table.it[each.key].name
 
   tags = {
-    Name    = each.key
+    Name    = "${var.product}-${each.key}"
     product = var.product
   }
 }

@@ -16,7 +16,7 @@ variable "dynamodbs" {
       name = string
       type = string
     }))
-    global_secondary_indexes = optional(list(object({
+    global_secondary_indexes = optional(map(object({
       hash_key           = string
       range_key          = optional(string)
       projection_type    = string

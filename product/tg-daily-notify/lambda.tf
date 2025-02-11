@@ -5,7 +5,7 @@ module "lambda_functions" {
 
   lambda_functions = {
     electricity = {
-      image_uri   = data.aws_ssm_parameter.ecr_daily_electricity_image_url.value
+      image_uri   = module.ecr.repository_urls["daily-electricity"]
       memory_size = 512
       additional_iam_policies = [
         {

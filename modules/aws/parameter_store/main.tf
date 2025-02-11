@@ -9,7 +9,7 @@ resource "aws_ssm_parameter" "this" {
 
   tags = merge(
     {
-      Name    = each.key
+      Name    = "${var.product}-${each.key}"
       product = var.product
     },
     each.value.tags    
