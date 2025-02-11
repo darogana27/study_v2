@@ -1,8 +1,10 @@
 module "sns" {
-  source = "../../modules/sns"
+  source = "../../modules/aws/sns"
+
+  product = local.env.product
+
   sns = {
-    test = {
-      topic_name = "notify-alarm-for-slack"
+    notify-alarm-for-slack = {
       # protocol = https
       endpoint = "https://global.sns-api.chatbot.amazonaws.com"
     }

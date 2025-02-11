@@ -15,7 +15,7 @@ resource "aws_dynamodb_table" "it" {
   }
 
   dynamic "global_secondary_index" {
-    for_each = lookup(each.value, "global_secondary_indexes", [])
+    for_each = lookup(each.value, "global_secondary_indexes", []) != null ? each.value.global_secondary_indexes : []
     content {
       name               = global_secondary_index.key
       hash_key           = global_secondary_index.value.hash_key
@@ -48,7 +48,7 @@ resource "aws_ssm_parameter" "dynamodb_table_name" {
   name     = format("/%s/dynamodb/%s/table-name", var.product, each.key)
   type     = "String"
   value    = aws_dynamodb_table.it[each.key].name
-  
+
   tags = {
     Name    = each.key
     product = var.product
