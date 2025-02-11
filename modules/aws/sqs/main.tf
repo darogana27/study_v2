@@ -17,7 +17,7 @@ resource "aws_sqs_queue" "it" {
   })
 
   tags = {
-    Name    = each.key
+    Name    = "${var.product}-${each.key}"
     product = var.product
   }
 }
