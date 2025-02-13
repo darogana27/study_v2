@@ -24,7 +24,7 @@ module "lambda_functions" {
       sqs_config = {
         delay_seconds     = 0
         max_message_size  = 262144
-        max_receive_count = 20
+        max_receive_count = 50
 
       }
       reserved_concurrent_executions = "1"
