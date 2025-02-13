@@ -6,5 +6,6 @@ variable "sqs" {
     message_retention_seconds  = optional(number, 86400)
     receive_wait_time_seconds  = optional(number, 10)
     visibility_timeout_seconds = optional(number, 10)
+    max_receive_count          = optional(number, 4)
   }))
 }

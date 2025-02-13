@@ -13,9 +13,8 @@ resource "aws_sqs_queue" "it" {
   visibility_timeout_seconds = each.value.visibility_timeout_seconds
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.deadletter[each.key].arn
-    maxReceiveCount     = 4
+    maxReceiveCount     = try(each.value.max_receive_count, 4)
   })
-
   tags = {
     Name    = "${var.product}-${each.key}"
     product = var.product
@@ -62,7 +61,7 @@ resource "aws_ssm_parameter" "sqs_url" {
   name     = format("/%s/sqs/%s/url", var.product, each.key)
   type     = "String"
   value    = aws_sqs_queue.it[each.key].url
-  
+
   tags = {
     Name    = each.key
     product = var.product
@@ -75,7 +74,7 @@ resource "aws_ssm_parameter" "deadletter_sqs_url" {
   name     = format("/%s/sqs/%s/deadletter/url", var.product, each.key)
   type     = "String"
   value    = aws_sqs_queue.deadletter[each.key].url
-  
+
   tags = {
     Name    = each.key
     product = var.product

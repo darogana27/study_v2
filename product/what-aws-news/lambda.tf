@@ -22,8 +22,10 @@ module "lambda_functions" {
       delay_seconds    = 90
       need_sqs_trigger = true
       sqs_config = {
-        delay_seconds    = 0
-        max_message_size = 262144
+        delay_seconds     = 0
+        max_message_size  = 262144
+        max_receive_count = 50
+
       }
       reserved_concurrent_executions = "1"
       additional_iam_policies = [

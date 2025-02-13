@@ -38,6 +38,7 @@ variable "lambda_functions" {
       max_message_size          = optional(number, 2048)
       message_retention_seconds = optional(number, 86400)
       receive_wait_time_seconds = optional(number, 10)
+      max_receive_count         = optional(number)
       # visibility_timeout_seconds はLambdaのtimeoutから自動設定
     }))
   }))

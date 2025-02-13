@@ -43,7 +43,7 @@ resource "aws_cloudwatch_log_group" "it" {
   name              = "/aws/lambda/${var.product}-${each.key}-function"
   retention_in_days = 30
   tags = {
-    Name    = "${var.product}-${each.key}"
+    Name = "${var.product}-${each.key}"
   }
 }
 
@@ -53,7 +53,7 @@ resource "aws_iam_role" "it" {
   name               = format("%s-%s-function-role", var.product, each.key)
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
   tags = {
-    Name    = "${var.product}-${each.key}"
+    Name = "${var.product}-${each.key}"
   }
 }
 
