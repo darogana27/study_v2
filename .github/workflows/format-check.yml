@@ -4,7 +4,7 @@ on:
   push:
 
 jobs:
-  tf-fmt:
+  terraform-fmt:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
