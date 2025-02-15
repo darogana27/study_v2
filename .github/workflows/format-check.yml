@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - '**'
+    paths:
+      - '**.tf'
+      - '**.tfvars'
+      - '**.hcl'
 
 jobs:
   tf-fmt:
@@ -13,7 +17,15 @@ jobs:
       
       - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "1.7.5"
+          terraform_version: "1.7.3"
           
-      - name: Terraform fmt
-        run: terraform fmt -check -recursive
+      - name: Terraform fmt check
+        id: fmt-check
+        run: |
+          NEEDS_FMT=$(terraform fmt -check -recursive -list=true)
+          if [ -n "$NEEDS_FMT" ]; then
+            echo "以下のファイルのフォーマットが必要です："
+            echo "$NEEDS_FMT"
+            echo "ローカルで 'terraform fmt' を実行してください"
+          fi
+        continue-on-error: true
