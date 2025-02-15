@@ -1,4 +1,4 @@
-name: Terraform fmt check and auto-format
+name: Terraform fmt check
 
 on:
   push:
@@ -6,8 +6,6 @@ on:
 jobs:
   tf-fmt:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v2
       
@@ -19,22 +17,12 @@ jobs:
         id: fmt-check
         continue-on-error: true
         run: |
-          terraform fmt -check -recursive
-          if [ $? -eq 3 ]; then
-            echo "fmt_failed=true" >> $GITHUB_OUTPUT
-          else
-            echo "fmt_failed=false" >> $GITHUB_OUTPUT
+          OUTPUT=$(terraform fmt -check -recursive)
+          EXIT_CODE=$?
+          
+          if [ $EXIT_CODE -eq 3 ]; then
+            echo "::error::以下のTerraformファイルのフォーマットが必要です："
+            echo "$OUTPUT"
+            echo "terraform fmt コマンドを実行してフォーマットしてください。"
+            exit 1
           fi
-      
-      - name: Run terraform fmt if check failed
-        if: steps.fmt-check.outputs.fmt_failed == 'true'
-        run: terraform fmt -recursive
-      
-      - name: Commit changes if files were formatted
-        if: steps.fmt-check.outputs.fmt_failed == 'true'
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add -A
-          git commit -m "chore: terraform fmt"
-          git push
