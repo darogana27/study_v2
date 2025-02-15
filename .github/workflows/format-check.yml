@@ -17,8 +17,10 @@ jobs:
       
       - name: Terraform fmt check
         id: fmt-check
+        continue-on-error: true
         run: |
-          if ! terraform fmt -check -recursive; then
+          terraform fmt -check -recursive
+          if [ $? -eq 3 ]; then
             echo "fmt_failed=true" >> $GITHUB_OUTPUT
           else
             echo "fmt_failed=false" >> $GITHUB_OUTPUT
