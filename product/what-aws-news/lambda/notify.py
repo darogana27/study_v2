@@ -33,6 +33,8 @@ class AWSResources:
 
 class LineNotifier:
     """LINE通知の管理"""
+    MAX_ARTICLES_PER_MESSAGE = 10  # 1メッセージあたりの最大記事数
+    
     def __init__(self, aws_resources: AWSResources):
         self.aws = aws_resources
         self.token = self._get_token()
@@ -45,18 +47,31 @@ class LineNotifier:
             print(f"Error getting LINE token: {e}")
             return None
 
-    def _build_message(self, articles: List[Dict[str, Any]]) -> str:
+    def _build_message(self, articles: List[Dict[str, Any]], start_index: int, total_articles: int) -> str:
         """通知メッセージを構築"""
         today = datetime.now().strftime(Config.DATE_FORMAT)
-        message = f"{today}の更新は{len(articles)}件でした\n\n"
+        batch_size = len(articles)
         
+        # メッセージの冒頭部分を構築
+        if total_articles > self.MAX_ARTICLES_PER_MESSAGE:
+            range_text = f"{start_index + 1}件目" if batch_size == 1 else f"{start_index + 1}～{start_index + batch_size}件目"
+            if start_index == 0:
+                message = f"{today}の更新は{total_articles}件でした\n({range_text}を表示)\n\n"
+            else:
+                message = f"({range_text}を表示)\n\n"
+        else:
+            message = f"{today}の更新は{total_articles}件でした\n\n"
+        
+        # 記事の詳細を追加
         for i, article in enumerate(articles, 1):
-            message += f"""{article['翻訳タイトル']}
+            message += f"""
+📢
+{article['翻訳タイトル']}
 
-更新内容：
+📝 
 {article['翻訳本文']}
 
-詳細はこちら：
+🌐 詳細はこちら
 {article['link']}
 
 {Config.SEPARATOR if i < len(articles) else ''}\n\n"""
@@ -64,7 +79,7 @@ class LineNotifier:
         return message.strip()
 
     def send_message(self, articles: List[Dict[str, Any]]) -> bool:
-        """LINE通知を送信"""
+        """LINE通知を送信（バッチ処理対応）"""
         if not articles:
             print("通知対象の記事がありません")
             return False
@@ -73,35 +88,44 @@ class LineNotifier:
             print("LINE token not found")
             return False
 
-        data = {
-            'messages': [{
-                'type': 'text',
-                'text': self._build_message(articles)
-            }]
-        }
-        
-        try:
-            req = urllib.request.Request(
-                Config.LINE_API_URL,
-                data=json.dumps(data).encode('utf-8'),
-                headers={
-                    'Content-Type': 'application/json',
-                    'Authorization': f'Bearer {self.token}'
-                },
-                method='POST'
-            )
+        total_articles = len(articles)
+        success = True
+
+        # 記事を10件ずつのバッチに分割して送信
+        for i in range(0, total_articles, self.MAX_ARTICLES_PER_MESSAGE):
+            batch_articles = articles[i:i + self.MAX_ARTICLES_PER_MESSAGE]
             
-            with urllib.request.urlopen(req) as response:
-                success = response.status == 200
-                if success:
-                    print(f"LINE message sent successfully ({len(articles)}件の記事をまとめて送信)")
-                else:
-                    print(f"LINE API error: {response.status}")
-                return success
+            data = {
+                'messages': [{
+                    'type': 'text',
+                    'text': self._build_message(batch_articles, i, total_articles)
+                }]
+            }
+            
+            try:
+                req = urllib.request.Request(
+                    Config.LINE_API_URL,
+                    data=json.dumps(data).encode('utf-8'),
+                    headers={
+                        'Content-Type': 'application/json',
+                        'Authorization': f'Bearer {self.token}'
+                    },
+                    method='POST'
+                )
+                
+                with urllib.request.urlopen(req) as response:
+                    batch_success = response.status == 200
+                    if batch_success:
+                        print(f"LINE message sent successfully (記事 {i+1}～{i+len(batch_articles)}件目)")
+                    else:
+                        print(f"LINE API error: {response.status}")
+                        success = False
                         
-        except Exception as e:
-            print(f"Error sending LINE message: {e}")
-            return False
+            except Exception as e:
+                print(f"Error sending LINE message: {e}")
+                success = False
+
+        return success
 
 class ArticleManager:
     """記事データの管理"""
