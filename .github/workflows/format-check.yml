@@ -1,0 +1,112 @@
+name: Format Check
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  push:
+    branches:
+      - '**'  # 全てのブランチを対象にする
+
+jobs:
+  format:
+    name: formatter
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9]
+    permissions:
+      contents: write
+      pull-requests: write
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          
+      # Python setup
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install autoflake black isort
+          
+      # Terraform setup
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5.0"
+          
+      - name: Cache Dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pip
+            .terraform
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/requirements.txt', '**/.terraform.lock.hcl') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-
+            
+      - name: Check file changes
+        id: changes
+        run: |
+          echo "py_files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep .py$ || true)" >> $GITHUB_OUTPUT
+          echo "tf_files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep .tf$ || true)" >> $GITHUB_OUTPUT
+          
+      # Python formatting
+      - name: Run autoflake
+        if: steps.changes.outputs.py_files != ''
+        run: |
+          autoflake -r --in-place --remove-all-unused-imports --remove-unused-variables --expand-star-imports .
+          
+      - name: Run black
+        if: steps.changes.outputs.py_files != ''
+        run: |
+          black --config=pyproject.toml . || black .
+          
+      - name: Run isort
+        if: steps.changes.outputs.py_files != ''
+        run: |
+          isort --profile black .
+          
+      # Terraform formatting
+      - name: Format Terraform code
+        if: steps.changes.outputs.tf_files != ''
+        run: |
+          terraform fmt -recursive
+          
+      - name: Check for formatting changes
+        id: check
+        run: |
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "changes_detected=true" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Auto Commit
+        if: steps.check.outputs.changes_detected == 'true'
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: Apply code formatters (Python & Terraform)"
+          commit_options: "--no-verify"
+          
+      - name: Comment on PR
+        if: steps.check.outputs.changes_detected == 'true' && github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const formatTypes = [];
+            if ('${{ steps.changes.outputs.py_files }}') formatTypes.push('Python');
+            if ('${{ steps.changes.outputs.tf_files }}') formatTypes.push('Terraform');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.name,
+              body: `✨ ${formatTypes.join(' & ')}のコードフォーマットを適用しました。変更内容を確認してください。`
+            })
