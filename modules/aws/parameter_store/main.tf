@@ -12,7 +12,7 @@ resource "aws_ssm_parameter" "this" {
       Name    = "${var.product}-${each.key}"
       product = var.product
     },
-    each.value.tags    
+    each.value.tags
   )
 
   lifecycle {
