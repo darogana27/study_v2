@@ -49,7 +49,7 @@ jobs:
           path: |
             ~/.cache/pip
             .terraform
-          key: ${{ runner.os }}-deps-${{ hashFiles('**/requirements.txt', '**/.terraform.lock.hcl') }}
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/*.tf', '**/*.py') }}
           restore-keys: |
             ${{ runner.os }}-deps-
             
@@ -68,7 +68,7 @@ jobs:
       - name: Run black
         if: steps.changes.outputs.py_files != ''
         run: |
-          black --config=pyproject.toml . || black .
+          black .
           
       - name: Run isort
         if: steps.changes.outputs.py_files != ''
