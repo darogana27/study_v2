@@ -1,0 +1,28 @@
+name: Terraform fmt check
+
+on:
+  push:
+
+jobs:
+  tf-fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.2.7
+      
+      - name: Terraform fmt check
+        id: fmt-check
+        continue-on-error: true
+        run: |
+          OUTPUT=$(terraform fmt -check -recursive)
+          EXIT_CODE=$?
+          
+          if [ $EXIT_CODE -eq 3 ]; then
+            echo "::error::以下のTerraformファイルのフォーマットが必要です："
+            echo "$OUTPUT"
+            echo "terraform fmt コマンドを実行してフォーマットしてください。"
+            exit 1
+          fi
