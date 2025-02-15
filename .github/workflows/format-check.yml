@@ -18,10 +18,18 @@ jobs:
       - name: Terraform fmt check
         id: fmt-check
         run: |
-          NEEDS_FMT=$(terraform fmt -check -recursive -list=true)
-          if [ -n "$NEEDS_FMT" ]; then
-            echo "以下のファイルのフォーマットが必要です："
+          # フォーマットチェックを実行し、結果を変数に保存
+          set +e  # エラーが発生しても続行
+          NEEDS_FMT=$(terraform fmt -check -recursive -list=true 2>&1)
+          FMT_EXIT_CODE=$?
+          set -e  # エラーチェックを再度有効化
+          
+          # 結果に基づいてメッセージを表示
+          if [ $FMT_EXIT_CODE -eq 0 ]; then
+            echo "✅ すべてのTerraformファイルは正しくフォーマットされています"
+          else
+            echo "::warning::Terraform files need formatting"
+            echo "🔎 フォーマットが必要なファイルが見つかりました："
             echo "$NEEDS_FMT"
-            echo "ローカルで 'terraform fmt' を実行してください"
+            echo "💡 ローカルで 'terraform fmt' を実行してください"
           fi
-        continue-on-error: true
