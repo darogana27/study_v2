@@ -50,6 +50,11 @@ class LineNotifier:
     def _build_message(self, articles: List[Dict[str, Any]], start_index: int, total_articles: int) -> str:
         """通知メッセージを構築"""
         today = datetime.now().strftime(Config.DATE_FORMAT)
+        
+        # 記事がない場合のメッセージ
+        if not articles:
+            return f"{today}の更新はありませんでした"
+            
         batch_size = len(articles)
         
         # メッセージの冒頭部分を構築
@@ -80,10 +85,6 @@ class LineNotifier:
 
     def send_message(self, articles: List[Dict[str, Any]]) -> bool:
         """LINE通知を送信（バッチ処理対応）"""
-        if not articles:
-            print("通知対象の記事がありません")
-            return False
-            
         if not self.token:
             print("LINE token not found")
             return False
@@ -91,7 +92,39 @@ class LineNotifier:
         total_articles = len(articles)
         success = True
 
-        # 記事を10件ずつのバッチに分割して送信
+        # 記事がない場合は1回だけ通知を送信
+        if not articles:
+            data = {
+                'messages': [{
+                    'type': 'text',
+                    'text': self._build_message([], 0, 0)
+                }]
+            }
+            try:
+                req = urllib.request.Request(
+                    Config.LINE_API_URL,
+                    data=json.dumps(data).encode('utf-8'),
+                    headers={
+                        'Content-Type': 'application/json',
+                        'Authorization': f'Bearer {self.token}'
+                    },
+                    method='POST'
+                )
+                
+                with urllib.request.urlopen(req) as response:
+                    success = response.status == 200
+                    if success:
+                        print("LINE message sent successfully (更新なし)")
+                    else:
+                        print(f"LINE API error: {response.status}")
+                        
+            except Exception as e:
+                print(f"Error sending LINE message: {e}")
+                success = False
+            
+            return success
+
+        # 記事がある場合は10件ずつのバッチに分割して送信
         for i in range(0, total_articles, self.MAX_ARTICLES_PER_MESSAGE):
             batch_articles = articles[i:i + self.MAX_ARTICLES_PER_MESSAGE]
             
@@ -174,19 +207,13 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         # 記事の取得と通知
         articles = article_manager.get_todays_articles()
-        if not articles:
-            return {
-                'statusCode': 200,
-                'body': json.dumps({'message': '通知対象の記事がありません'})
-            }
-        
         notification_success = line_notifier.send_message(articles)
         status_code = 200 if notification_success else 500
         
         return {
             'statusCode': status_code,
             'body': json.dumps({
-                'message': f'{len(articles)}件の記事を通知しました' if notification_success else 'LINE通知に失敗しました',
+                'message': f'{len(articles)}件の記事を通知しました' if articles else '更新なしを通知しました' if notification_success else 'LINE通知に失敗しました',
                 'articles': articles
             }, ensure_ascii=False, default=json_serializer)
         }
