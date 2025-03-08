@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EPIC ADVENTURE - 新作ゲーム発売サイト</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/amazon-cognito-identity-js/6.3.7/amazon-cognito-identity.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+        }
+        
+        body {
+            background-color: #0a0a1a;
+            color: #ffffff;
+            line-height: 1.6;
+        }
+        
+        header {
+            background: linear-gradient(to right, #5000ca, #2c0060);
+            padding: 1rem 0;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+        
+        .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ffffff;
+            text-decoration: none;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+        
+        .nav-links a {
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: bold;
+            transition: color 0.3s;
+        }
+        
+        .nav-links a:hover {
+            color: #ff9900;
+        }
+        
+        .hero {
+            height: 100vh;
+            background: url('/api/placeholder/1200/800') center/cover no-repeat;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding-top: 60px;
+        }
+        
+        .hero-content {
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 2rem;
+            border-radius: 10px;
+            max-width: 800px;
+        }
+        
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            color: #ffffff;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+        
+        .hero p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            color: #cccccc;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(to right, #ff9900, #ff5500);
+            color: #ffffff;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-decoration: none;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 5px 15px rgba(255, 153, 0, 0.4);
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(255, 153, 0, 0.6);
+        }
+        
+        .features {
+            padding: 5rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .section-title {
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 3rem;
+            color: #ff9900;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        
+        .feature-card {
+            background-color: #13132b;
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            transition: transform 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #ff9900;
+        }
+        
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #ffffff;
+        }
+        
+        .feature-card p {
+            color: #cccccc;
+        }
+        
+        .gameplay {
+            padding: 5rem 2rem;
+            background-color: #0d0d23;
+        }
+        
+        .gameplay-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 3rem;
+        }
+        
+        .gameplay-item {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+        
+        .gameplay-item:nth-child(even) {
+            flex-direction: row-reverse;
+        }
+        
+        .gameplay-image {
+            flex: 1;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .gameplay-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .gameplay-text {
+            flex: 1;
+        }
+        
+        .gameplay-text h3 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: #ff9900;
+        }
+        
+        .gameplay-text p {
+            color: #cccccc;
+            margin-bottom: 1.5rem;
+        }
+        
+        .countdown {
+            padding: 5rem 2rem;
+            text-align: center;
+            background: linear-gradient(to right, #2c0060, #5000ca);
+        }
+        
+        .countdown-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .countdown h2 {
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            color: #ffffff;
+        }
+        
+        .countdown-timer {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .countdown-item {
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 1.5rem;
+            border-radius: 10px;
+            min-width: 120px;
+        }
+        
+        .countdown-number {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #ffffff;
+        }
+        
+        .countdown-label {
+            font-size: 1rem;
+            color: #cccccc;
+            text-transform: uppercase;
+        }
+        
+        footer {
+            padding: 3rem 2rem;
+            background-color: #050510;
+            text-align: center;
+        }
+        
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .social-link {
+            color: #cccccc;
+            font-size: 1.5rem;
+            transition: color 0.3s;
+        }
+        
+        .social-link:hover {
+            color: #ff9900;
+        }
+        
+        .footer-nav {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .footer-nav a {
+            color: #cccccc;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .footer-nav a:hover {
+            color: #ff9900;
+        }
+        
+        .copyright {
+            color: #777777;
+            font-size: 0.9rem;
+        }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            overflow: auto;
+        }
+        
+        .modal-content {
+            background: linear-gradient(to bottom, #13132b, #0d0d23);
+            margin: 10% auto;
+            padding: 2rem;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 10px;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+        
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 1.5rem;
+            color: #cccccc;
+            cursor: pointer;
+        }
+        
+        .close-button:hover {
+            color: #ff9900;
+        }
+        
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #333;
+        }
+        
+        .auth-tab {
+            flex: 1;
+            padding: 0.8rem;
+            text-align: center;
+            cursor: pointer;
+            color: #cccccc;
+            font-weight: bold;
+        }
+        
+        .auth-tab.active {
+            color: #ff9900;
+            border-bottom: 2px solid #ff9900;
+        }
+        
+        .auth-form {
+            display: none;
+        }
+        
+        .auth-form.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #ffffff;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #333;
+            background-color: #0a0a1a;
+            color: #ffffff;
+            border-radius: 5px;
+        }
+        
+        .form-button {
+            display: block;
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(to right, #ff9900, #ff5500);
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .form-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 153, 0, 0.4);
+        }
+        
+        .form-footer {
+            margin-top: 1.5rem;
+            text-align: center;
+            color: #cccccc;
+            font-size: 0.9rem;
+        }
+        
+        .form-footer a {
+            color: #ff9900;
+            text-decoration: none;
+        }
+        
+        .form-message {
+            margin-top: 1rem;
+            padding: 0.8rem;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .form-message.error {
+            display: block;
+            background-color: rgba(255, 0, 0, 0.2);
+            color: #ff6666;
+        }
+        
+        .form-message.success {
+            display: block;
+            background-color: rgba(0, 255, 0, 0.2);
+            color: #66ff66;
+        }
+        
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                gap: 1rem;
+                padding: 1rem 2rem;
+            }
+            
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .gameplay-item {
+                flex-direction: column;
+            }
+            
+            .gameplay-item:nth-child(even) {
+                flex-direction: column;
+            }
+            
+            .countdown-timer {
+                flex-wrap: wrap;
+            }
+            
+            .countdown-item {
+                min-width: 100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <a href="#" class="logo">EPIC ADVENTURE</a>
+            <div class="nav-links">
+                <a href="#features">特徴</a>
+                <a href="#gameplay">ゲームプレイ</a>
+                <a href="#countdown">発売日</a>
+                <a href="#footer">お問い合わせ</a>
+                <a href="#" id="loginButton">ログイン</a>
+            </div>
+        </nav>
+    </header>
+
+    <section class="hero">
+        <div class="hero-content">
+            <h1>EPIC ADVENTURE</h1>
+            <p>未知の世界への冒険、迫りくる危機、そして運命の戦い。あなたの選択が世界を変える。</p>
+            <a href="#" class="cta-button">予約する</a>
+        </div>
+    </section>
+
+    <section id="features" class="features">
+        <h2 class="section-title">ゲームの特徴</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🌍</div>
+                <h3>広大なオープンワールド</h3>
+                <p>自由に探索できる広大な世界。隠された秘密や宝物を探し出そう。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⚔️</div>
+                <h3>臨場感あふれる戦闘</h3>
+                <p>リアルタイムでスリリングな戦闘を体験。様々な武器や魔法を駆使して戦おう。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔮</div>
+                <h3>魅力的なストーリー</h3>
+                <p>プレイヤーの選択で変わる多彩なストーリー展開。あなただけの物語を紡ごう。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">👥</div>
+                <h3>多彩なキャラクター</h3>
+                <p>個性豊かなキャラクターたち。彼らとの交流があなたの冒険を彩る。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🏰</div>
+                <h3>多様なダンジョン</h3>
+                <p>それぞれ特徴のある多数のダンジョン。強力なボスが待ち受ける。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎮</div>
+                <h3>オンラインマルチプレイ</h3>
+                <p>友達と一緒に冒険しよう。協力プレイで強敵に立ち向かえ。</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="gameplay" class="gameplay">
+        <h2 class="section-title">ゲームプレイ</h2>
+        <div class="gameplay-content">
+            <div class="gameplay-item">
+                <div class="gameplay-image">
+                    <img src="/api/placeholder/600/400" alt="ゲームプレイ画像1">
+                </div>
+                <div class="gameplay-text">
+                    <h3>壮大な冒険</h3>
+                    <p>広大な世界を自由に探索し、数々の謎を解き明かそう。山、森、湖、砂漠など様々な環境が広がり、それぞれに固有の生態系と秘密が隠されています。</p>
+                    <p>昼夜や天候のサイクルが実装され、時間帯や環境によって出現するモンスターや入手できるアイテムが変化します。</p>
+                </div>
+            </div>
+            <div class="gameplay-item">
+                <div class="gameplay-image">
+                    <img src="/api/placeholder/600/400" alt="ゲームプレイ画像2">
+                </div>
+                <div class="gameplay-text">
+                    <h3>戦略的な戦闘</h3>
+                    <p>剣、弓、魔法など様々な戦闘スタイルを選択できます。敵の弱点を見極め、地形を利用した戦略的な戦いを繰り広げましょう。</p>
+                    <p>レベルアップでスキルポイントを獲得し、自分だけの戦闘スタイルを構築できます。100種類以上の武器と防具、200種類以上の魔法が登場。</p>
+                </div>
+            </div>
+            <div class="gameplay-item">
+                <div class="gameplay-image">
+                    <img src="/api/placeholder/600/400" alt="ゲームプレイ画像3">
+                </div>
+                <div class="gameplay-text">
+                    <h3>キャラクターカスタマイズ</h3>
+                    <p>細部まで作り込まれたキャラクタークリエイト機能で、自分だけのヒーローを作成しましょう。種族、外見、能力値などを自由にカスタマイズできます。</p>
+                    <p>ゲーム内で発見する装備品で見た目も能力も変化。他のプレイヤーと差をつけた個性的なキャラクターを作り上げましょう。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="countdown" class="countdown">
+        <div class="countdown-content">
+            <h2>発売まであと</h2>
+            <div class="countdown-timer">
+                <div class="countdown-item">
+                    <div class="countdown-number" id="days">30</div>
+                    <div class="countdown-label">日</div>
+                </div>
+                <div class="countdown-item">
+                    <div class="countdown-number" id="hours">12</div>
+                    <div class="countdown-label">時間</div>
+                </div>
+                <div class="countdown-item">
+                    <div class="countdown-number" id="minutes">45</div>
+                    <div class="countdown-label">分</div>
+                </div>
+                <div class="countdown-item">
+                    <div class="countdown-number" id="seconds">20</div>
+                    <div class="countdown-label">秒</div>
+                </div>
+            </div>
+            <a href="#" class="cta-button">今すぐ予約する</a>
+        </div>
+    </section>
+
+    <footer id="footer">
+        <div class="footer-content">
+            <div class="social-links">
+                <a href="#" class="social-link">Twitter</a>
+                <a href="#" class="social-link">Instagram</a>
+                <a href="#" class="social-link">YouTube</a>
+                <a href="#" class="social-link">Discord</a>
+            </div>
+            <div class="footer-nav">
+                <a href="#">ホーム</a>
+                <a href="#">お知らせ</a>
+                <a href="#">FAQ</a>
+                <a href="#">サポート</a>
+                <a href="#">プライバシーポリシー</a>
+            </div>
+            <div class="copyright">
+                &copy; 2025 EPIC ADVENTURE All Rights Reserved.
+            </div>
+        </div>
+    </footer>
+
+    <!-- Auth Modal -->
+    <div id="authModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            
+            <div class="auth-tabs">
+                <div class="auth-tab active" id="loginTab">ログイン</div>
+                <div class="auth-tab" id="signupTab">新規登録</div>
+            </div>
+            
+            <div class="auth-form active" id="loginForm">
+                <div class="form-message" id="loginMessage"></div>
+                <div class="form-group">
+                    <label for="loginEmail">メールアドレス</label>
+                    <input type="email" id="loginEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">パスワード</label>
+                    <input type="password" id="loginPassword" required>
+                </div>
+                <button class="form-button" id="submitLogin">ログイン</button>
+                <div class="form-footer">
+                    アカウントをお持ちでない方は <a href="#" id="switchToSignup">新規登録</a>
+                </div>
+            </div>
+            
+            <div class="auth-form" id="signupForm">
+                <div class="form-message" id="signupMessage"></div>
+                <div class="form-group">
+                    <label for="signupEmail">メールアドレス</label>
+                    <input type="email" id="signupEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="signupPassword">パスワード</label>
+                    <input type="password" id="signupPassword" required>
+                    <small style="color: #cccccc; display: block; margin-top: 0.5rem;">8文字以上、大文字・小文字・数字を含む必要があります</small>
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">パスワード（確認）</label>
+                    <input type="password" id="confirmPassword" required>
+                </div>
+                <button class="form-button" id="submitSignup">登録する</button>
+                <div class="form-footer">
+                    すでにアカウントをお持ちの方は <a href="#" id="switchToLogin">ログイン</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // カウントダウンタイマーの実装
+        const countDownDate = new Date("May 10, 2025 00:00:00").getTime();
+
+        const updateCountdown = () => {
+            const now = new Date().getTime();
+            const distance = countDownDate - now;
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            document.getElementById("days").innerHTML = days;
+            document.getElementById("hours").innerHTML = hours;
+            document.getElementById("minutes").innerHTML = minutes;
+            document.getElementById("seconds").innerHTML = seconds;
+        };
+
+        // 初回実行
+        updateCountdown();
+        // 1秒ごとに更新
+        setInterval(updateCountdown, 1000);
+
+        // AWS Cognito設定
+        // 注意: 実際のデプロイ時には、以下の設定を実際のAWS Cognito設定値に置き換えてください
+        const poolData = {
+            UserPoolId: 'REGION_USERPOOLID', // 例: 'us-east-1_xxxxxxxx'
+            ClientId: 'CLIENT_ID' // 例: 'xxxxxxxxxxxxxxxxxxxxxxxxxx'
+        };
+        
+        // ユーザープールの設定
+        const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+        
+        // モーダル関連の要素
+        const modal = document.getElementById('authModal');
+        const loginButton = document.getElementById('loginButton');
+        const closeButton = document.querySelector('.close-button');
+        const loginTab = document.getElementById('loginTab');
+        const signupTab = document.getElementById('signupTab');
+        const loginForm = document.getElementById('loginForm');
+        const signupForm = document.getElementById('signupForm');
+        const switchToSignup = document.getElementById('switchToSignup');
+        const switchToLogin = document.getElementById('switchToLogin');
+        
+        // ログインボタンクリックでモーダルを表示
+        loginButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            modal.style.display = 'block';
+        });
+        
+        // 閉じるボタンでモーダルを非表示
+        closeButton.addEventListener('click', function() {
+            modal.style.display = 'none';
+        });
+        
+        // モーダル外クリックで閉じる
+        window.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+        
+        // タブ切り替え機能
+        loginTab.addEventListener('click', function() {
+            loginTab.classList.add('active');
+            signupTab.classList.remove('active');
+            loginForm.classList.add('active');
+            signupForm.classList.remove('active');
+        });
+        
+        signupTab.addEventListener('click', function() {
+            signupTab.classList.add('active');
+            loginTab.classList.remove('active');
+            signupForm.classList.add('active');
+            loginForm.classList.remove('active');
+        });
+        
+        // フォーム切り替えリンク
+        switchToSignup.addEventListener('click', function(e) {
+            e.preventDefault();
+            signupTab.click();
+        });
+        
+        switchToLogin.addEventListener('click', function(e) {
+            e.preventDefault();
+            loginTab.click();
+        });
+        
+        // サインアップ機能
+        document.getElementById('submitSignup').addEventListener('click', function() {
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const messageElement = document.getElementById('signupMessage');
+            
+            // 入力検証
+            if (!email || !password || !confirmPassword) {
+                showMessage(messageElement, 'すべての項目を入力してください', 'error');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showMessage(messageElement, 'パスワードが一致しません', 'error');
+                return;
+            }
+            
+            // パスワード強度検証
+            if (password.length < 8) {
+                showMessage(messageElement, 'パスワードは8文字以上必要です', 'error');
+                return;
+            }
+            
+            // Cognito属性リストの作成
+            const attributeList = [];
+            
+            const dataEmail = {
+                Name: 'email',
+                Value: email
+            };
+            
+            const attributeEmail = new AmazonCognitoIdentity.CognitoUserAttribute(dataEmail);
+            attributeList.push(attributeEmail);
+            
+            // サインアップ処理
+            userPool.signUp(email, password, attributeList, null, function(err, result) {
+                if (err) {
+                    showMessage(messageElement, 'サインアップエラー: ' + err.message, 'error');
+                    return;
+                }
+                
+                const cognitoUser = result.user;
+                showMessage(messageElement, email + ' でアカウントが作成されました。確認コードが送信されますので、メールをご確認ください。', 'success');
+                
+                // フォームをリセット
+                document.getElementById('signupEmail').value = '';
+                document.getElementById('signupPassword').value = '';
+                document.getElementById('confirmPassword').value = '';
+                
+                // 数秒後にログインタブに切り替え
+                setTimeout(function() {
+                    loginTab.click();
+                }, 3000);
+            });
+        });
+        
+        // ログイン機能
+        document.getElementById('submitLogin').addEventListener('click', function() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const messageElement = document.getElementById('loginMessage');
+            
+            // 入力検証
+            if (!email || !password) {
+                showMessage(messageElement, 'メールアドレスとパスワードを入力してください', 'error');
+                return;
+            }
+            
+            // 認証データの設定
+            const authenticationData = {
+                Username: email,
+                Password: password
+            };
+            
+            const authenticationDetails = new AmazonCognitoIdentity.AuthenticationDetails(authenticationData);
+            
+            const userData = {
+                Username: email,
+                Pool: userPool
+            };
+            
+            const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
+            
+            // ログイン処理
+            cognitoUser.authenticateUser(authenticationDetails, {
+                onSuccess: function(result) {
+                    // ログイン成功
+                    showMessage(messageElement, 'ログインに成功しました', 'success');
+                    
+                    // アクセストークンの取得
+                    const accessToken = result.getAccessToken().getJwtToken();
+                    
+                    // ローカルストレージに保存
+                    localStorage.setItem('userToken', accessToken);
+                    
+                    // ユーザーインターフェースの更新
+                    loginButton.textContent = 'マイページ';
+                    
+                    // モーダルを閉じる
+                    setTimeout(function() {
+                        modal.style.display = 'none';
+                        // ページをリロードまたはUIを更新
+                        // window.location.reload();
+                    }, 1500);
+                },
+                
+                onFailure: function(err) {
+                    // ログイン失敗
+                    showMessage(messageElement, 'ログインエラー: ' + err.message, 'error');
+                }
+            });
+        });
+        
+        // メッセージ表示関数
+        function showMessage(element, message, type) {
+            element.textContent = message;
+            element.className = 'form-message ' + type;
+            
+            // 成功メッセージは数秒後に消す
+            if (type === 'success') {
+                setTimeout(function() {
+                    element.style.display = 'none';
+                }, 5000);
+            }
+        }
+        
+        // ページ読み込み時にトークンをチェック
+        document.addEventListener('DOMContentLoaded', function() {
+            const token = localStorage.getItem('userToken');
+            if (token) {
+                // トークンが存在する場合、ユーザーはログイン済み
+                loginButton.textContent = 'マイページ';
+                
+                // トークンの有効性検証などの追加処理をここに記述
+            }
+        });
+    </script>
+</body>
+</html>
