@@ -6,6 +6,8 @@ import {
   signIn, 
   signUp, 
   signOut, 
+  confirmSignUp,
+  resendSignUpCode,
   getCurrentUser, 
   fetchUserAttributes, 
   fetchAuthSession 
@@ -15,9 +17,16 @@ import './App.css';
 // AWS Amplify設定
 const awsConfig = {
   Auth: {
-    region: 'REGION', // 例: 'us-east-1'
-    userPoolId: 'USER_POOL_ID', // 例: 'us-east-1_xxxxxxxx'
-    userPoolWebClientId: 'CLIENT_ID', // 例: 'xxxxxxxxxxxxxxxxxxxxxxxxxx'
+    region: 'ap-northeast-1', // 例: 'us-east-1'
+    userPoolId: 'ap-northeast-1_NWYQNWHT9', // 例: 'us-east-1_xxxxxxxx'
+    userPoolWebClientId: '6rhqaekqs60ucif5bkqail37gj', // 例: 'xxxxxxxxxxxxxxxxxxxxxxxxxx'
+    oauth: {
+      domain: 'https://ap-northeast-1nwyqnwht9.auth.ap-northeast-1.amazoncognito.com',
+      scope: ['phone', 'email','openid'],
+      redirectSignIn: 'http://localhost:3000/',
+      redirectSignOut: 'http://localhost:3000/',
+      responseType: 'code'
+    }
   }
 };
 
@@ -27,6 +36,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(true);
   const [user, setUser] = useState(null);
+  const [userAttributes, setUserAttributes] = useState(null);
 
   useEffect(() => {
     checkAuthState();
@@ -34,15 +44,24 @@ function App() {
 
   async function checkAuthState() {
     try {
-      const session = await fetchAuthSession()
-      setIsAuthenticated(true);
+      // セッションと認証状態を確認
+      const session = await fetchAuthSession();
       const currentUser = await getCurrentUser();
+      
+      // ユーザー情報の取得
+      const attributes = await fetchUserAttributes();
+      
+      setIsAuthenticated(true);
       setUser(currentUser);
+      setUserAttributes(attributes);
     } catch (error) {
+      console.log('認証されていません:', error);
       setIsAuthenticated(false);
       setUser(null);
+      setUserAttributes(null);
+    } finally {
+      setIsAuthenticating(false);
     }
-    setIsAuthenticating(false);
   }
 
   async function handleLogout() {
@@ -50,8 +69,9 @@ function App() {
       await signOut();
       setIsAuthenticated(false);
       setUser(null);
+      setUserAttributes(null);
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('ログアウトエラー:', error);
     }
   }
 
@@ -67,8 +87,22 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/features" element={<FeaturesPage />} />
           <Route path="/gameplay" element={<GameplayPage />} />
-          <Route path="/login" element={!isAuthenticated ? <AuthPage setIsAuthenticated={setIsAuthenticated} setUser={setUser} /> : <Navigate to="/profile" />} />
-          <Route path="/profile" element={isAuthenticated ? <ProfilePage user={user} /> : <Navigate to="/login" />} />
+          <Route 
+            path="/login" 
+            element={
+              !isAuthenticated 
+                ? <AuthPage setIsAuthenticated={setIsAuthenticated} setUser={setUser} /> 
+                : <Navigate to="/profile" />
+            } 
+          />
+          <Route 
+            path="/profile" 
+            element={
+              isAuthenticated 
+                ? <ProfilePage user={user} userAttributes={userAttributes} /> 
+                : <Navigate to="/login" />
+            } 
+          />
         </Routes>
         <Footer />
       </div>
@@ -251,47 +285,128 @@ function GameplayPage() {
   );
 }
 
-// AuthPage Component (Login & Signup)
+// AuthPage Component (Login, Signup, Confirmation)
 function AuthPage({ setIsAuthenticated, setUser }) {
-  const [isLogin, setIsLogin] = useState(true);
+  const [activeTab, setActiveTab] = useState('login'); // 'login', 'signup', 'confirm'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [confirmationCode, setConfirmationCode] = useState('');
   const [message, setMessage] = useState({ text: '', type: '' });
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setMessage({ text: '', type: '' });
+    setLoading(true);
 
-    if (isLogin) {
-      // ログイン処理
-      try {
-        const user = await signIn({ username: email, password });
-        setIsAuthenticated(true);
-        setUser(user);
-      } catch (error) {
-        setMessage({ text: 'ログインエラー: ' + error.message, type: 'error' });
-      }
-    } else {
-      // サインアップ処理
-      if (password !== confirmPassword) {
-        setMessage({ text: 'パスワードが一致しません', type: 'error' });
-        return;
-      }
+    try {
+      if (activeTab === 'login') {
+        // ログイン処理
+        const { isSignedIn, nextStep } = await signIn({ 
+          username: email, 
+          password 
+        });
+        
+        if (isSignedIn) {
+          const currentUser = await getCurrentUser();
+          setIsAuthenticated(true);
+          setUser(currentUser);
+        } else if (nextStep && nextStep.signInStep === 'CONFIRM_SIGN_UP') {
+          // サインアップ確認が必要な場合
+          setActiveTab('confirm');
+          setMessage({ 
+            text: 'アカウントがまだ確認されていません。確認コードを入力してください。', 
+            type: 'info' 
+          });
+        }
+      } else if (activeTab === 'signup') {
+        // サインアップ処理
+        if (password !== confirmPassword) {
+          setMessage({ text: 'パスワードが一致しません', type: 'error' });
+          setLoading(false);
+          return;
+        }
 
-      try {
-        await signUp({
+        const { isSignUpComplete, userId, nextStep } = await signUp({
           username: email,
           password,
-          attributes: {
-            email
+          options: {
+            userAttributes: {
+              email
+            },
+            autoSignIn: true
           }
         });
-        setMessage({ text: email + ' でアカウントが作成されました。確認コードが送信されますので、メールをご確認ください。', type: 'success' });
-        setTimeout(() => setIsLogin(true), 3000);
-      } catch (error) {
-        setMessage({ text: 'サインアップエラー: ' + error.message, type: 'error' });
+
+        if (!isSignUpComplete && nextStep.signUpStep === 'CONFIRM_SIGN_UP') {
+          setActiveTab('confirm');
+          setMessage({ 
+            text: email + ' でアカウントが作成されました。確認コードが送信されますので、メールをご確認ください。', 
+            type: 'success' 
+          });
+        }
+      } else if (activeTab === 'confirm') {
+        // 確認コード検証
+        const { isSignUpComplete } = await confirmSignUp({
+          username: email,
+          confirmationCode
+        });
+
+        if (isSignUpComplete) {
+          // 自動サインインが有効の場合、ここではすでにサインインされているはず
+          try {
+            const session = await fetchAuthSession();
+            const currentUser = await getCurrentUser();
+            setIsAuthenticated(true);
+            setUser(currentUser);
+            setMessage({ text: 'アカウントが確認され、ログインしました', type: 'success' });
+          } catch (error) {
+            // 自動サインインが失敗した場合はログイン画面に戻る
+            setActiveTab('login');
+            setMessage({ text: 'アカウントが確認されました。ログインしてください', type: 'success' });
+          }
+        }
       }
+    } catch (error) {
+      console.error('認証エラー:', error);
+      
+      // エラーメッセージのカスタマイズ
+      let errorMsg = 'エラーが発生しました: ' + error.message;
+      
+      if (error.name === 'UserNotConfirmedException') {
+        setActiveTab('confirm');
+        errorMsg = 'アカウントが確認されていません。確認コードを入力してください。';
+      } else if (error.name === 'NotAuthorizedException') {
+        errorMsg = 'メールアドレスまたはパスワードが正しくありません。';
+      } else if (error.name === 'UserNotFoundException') {
+        errorMsg = 'アカウントが見つかりません。';
+      } else if (error.name === 'CodeMismatchException') {
+        errorMsg = '確認コードが正しくありません。';
+      } else if (error.name === 'LimitExceededException') {
+        errorMsg = '試行回数が多すぎます。しばらく時間をおいてからもう一度お試しください。';
+      } else if (error.name === 'InvalidPasswordException') {
+        errorMsg = 'パスワードポリシーに適合しません。8文字以上で、大文字・小文字・数字を含む必要があります。';
+      } else if (error.name === 'UsernameExistsException') {
+        errorMsg = 'このメールアドレスは既に登録されています。';
+      }
+      
+      setMessage({ text: errorMsg, type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // 確認コードの再送信
+  async function handleResendCode() {
+    try {
+      setLoading(true);
+      await resendSignUpCode({ username: email });
+      setMessage({ text: '確認コードを再送信しました。メールをご確認ください。', type: 'success' });
+    } catch (error) {
+      setMessage({ text: '確認コードの再送信に失敗しました: ' + error.message, type: 'error' });
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -300,17 +415,28 @@ function AuthPage({ setIsAuthenticated, setUser }) {
       <div className="auth-container">
         <div className="auth-tabs">
           <button 
-            className={`auth-tab ${isLogin ? 'active' : ''}`}
-            onClick={() => setIsLogin(true)}
+            className={`auth-tab ${activeTab === 'login' ? 'active' : ''}`}
+            onClick={() => {
+              if (!loading) setActiveTab('login');
+            }}
           >
             ログイン
           </button>
           <button 
-            className={`auth-tab ${!isLogin ? 'active' : ''}`}
-            onClick={() => setIsLogin(false)}
+            className={`auth-tab ${activeTab === 'signup' ? 'active' : ''}`}
+            onClick={() => {
+              if (!loading) setActiveTab('signup');
+            }}
           >
             新規登録
           </button>
+          {activeTab === 'confirm' && (
+            <button 
+              className={`auth-tab ${activeTab === 'confirm' ? 'active' : ''}`}
+            >
+              アカウント確認
+            </button>
+          )}
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit}>
@@ -320,46 +446,89 @@ function AuthPage({ setIsAuthenticated, setUser }) {
             </div>
           )}
 
-          <div className="form-group">
-            <label htmlFor="email">メールアドレス</label>
-            <input 
-              type="email" 
-              id="email" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required 
-            />
-          </div>
+          {activeTab !== 'confirm' && (
+            <>
+              <div className="form-group">
+                <label htmlFor="email">メールアドレス</label>
+                <input 
+                  type="email" 
+                  id="email" 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                  required 
+                />
+              </div>
 
-          <div className="form-group">
-            <label htmlFor="password">パスワード</label>
-            <input 
-              type="password" 
-              id="password" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required 
-            />
-            {!isLogin && (
-              <small>8文字以上、大文字・小文字・数字を含む必要があります</small>
-            )}
-          </div>
+              <div className="form-group">
+                <label htmlFor="password">パスワード</label>
+                <input 
+                  type="password" 
+                  id="password" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                  required 
+                />
+                {activeTab === 'signup' && (
+                  <small>8文字以上、大文字・小文字・数字を含む必要があります</small>
+                )}
+              </div>
 
-          {!isLogin && (
+              {activeTab === 'signup' && (
+                <div className="form-group">
+                  <label htmlFor="confirmPassword">パスワード（確認）</label>
+                  <input 
+                    type="password" 
+                    id="confirmPassword" 
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={loading}
+                    required 
+                  />
+                </div>
+              )}
+            </>
+          )}
+
+          {activeTab === 'confirm' && (
             <div className="form-group">
-              <label htmlFor="confirmPassword">パスワード（確認）</label>
+              <label htmlFor="confirmationCode">確認コード</label>
               <input 
-                type="password" 
-                id="confirmPassword" 
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                type="text" 
+                id="confirmationCode" 
+                value={confirmationCode}
+                onChange={(e) => setConfirmationCode(e.target.value)}
+                disabled={loading}
                 required 
               />
+              <small>
+                メールに送信された6桁の確認コードを入力してください。
+                <button 
+                  type="button" 
+                  onClick={handleResendCode} 
+                  disabled={loading}
+                  style={{ 
+                    background: 'none', 
+                    border: 'none', 
+                    color: '#ff9900', 
+                    textDecoration: 'underline', 
+                    cursor: 'pointer',
+                    padding: '0 0 0 5px'
+                  }}
+                >
+                  コードを再送信
+                </button>
+              </small>
             </div>
           )}
 
-          <button type="submit" className="form-button">
-            {isLogin ? 'ログイン' : '登録する'}
+          <button type="submit" className="form-button" disabled={loading}>
+            {loading ? 'お待ちください...' : (
+              activeTab === 'login' ? 'ログイン' : 
+              activeTab === 'signup' ? '登録する' : 
+              'コードを確認'
+            )}
           </button>
         </form>
       </div>
@@ -368,16 +537,65 @@ function AuthPage({ setIsAuthenticated, setUser }) {
 }
 
 // ProfilePage Component
-function ProfilePage({ user }) {
+function ProfilePage({ user, userAttributes }) {
+  const [preorderStatus, setPreorderStatus] = useState('未予約');
+  const [loading, setLoading] = useState(false);
+
+  // 予約処理（実際のバックエンドAPIとの連携が必要）
+  async function handlePreorder() {
+    try {
+      setLoading(true);
+      
+      // ここで実際の予約APIを呼び出す
+      // 例: await API.post('epicAdventureApi', '/preorders', { body: { userId: user.userId } });
+      
+      // 成功したと仮定してステータスを更新（実際の実装では応答に基づいて設定）
+      setTimeout(() => {
+        setPreorderStatus('予約済み - 発売日にアクセス可能になります');
+        setLoading(false);
+      }, 1500);
+      
+    } catch (error) {
+      console.error('予約エラー:', error);
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="profile-page">
       <div className="profile-container">
         <h2>マイページ</h2>
         <div className="profile-info">
-          <p><strong>メールアドレス:</strong> {user.attributes.email}</p>
-          <h3>予約状況</h3>
-          <p>現在、予約はありません。</p>
-          <button className="cta-button">ゲームを予約する</button>
+          <div style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: '#13132b', borderRadius: '5px' }}>
+            <h3 style={{ color: '#ff9900', marginTop: 0 }}>アカウント情報</h3>
+            <p><strong>ユーザーID:</strong> {user.userId}</p>
+            <p><strong>メールアドレス:</strong> {userAttributes?.email || 'メールアドレスが読み込めません'}</p>
+            {userAttributes?.name && <p><strong>お名前:</strong> {userAttributes.name}</p>}
+            <p><strong>アカウント作成日:</strong> {new Date(user.signInDetails?.loginTime || Date.now()).toLocaleDateString('ja-JP')}</p>
+          </div>
+          
+          <div style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: '#13132b', borderRadius: '5px' }}>
+            <h3 style={{ color: '#ff9900', marginTop: 0 }}>予約状況</h3>
+            <p><strong>ステータス:</strong> {preorderStatus}</p>
+            <p>EPIC ADVENTUREの発売は2025年5月10日です。</p>
+            {preorderStatus === '未予約' ? (
+              <button 
+                className="cta-button" 
+                onClick={handlePreorder}
+                disabled={loading}
+              >
+                {loading ? '処理中...' : 'ゲームを予約する'}
+              </button>
+            ) : (
+              <p style={{ color: '#66ff66' }}>✓ 予約完了！発売をお楽しみに。</p>
+            )}
+          </div>
+          
+          <div style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: '#13132b', borderRadius: '5px' }}>
+            <h3 style={{ color: '#ff9900', marginTop: 0 }}>アカウント設定</h3>
+            <p>アカウント設定の変更は現在準備中です。</p>
+            <button className="cta-button" disabled>プロフィールを編集する</button>
+          </div>
         </div>
       </div>
     </div>
