@@ -41,5 +41,6 @@ variable "lambda_functions" {
       max_receive_count         = optional(number)
       # visibility_timeout_seconds はLambdaのtimeoutから自動設定
     }))
+    environment_variables = optional(map(string), {})
   }))
 }

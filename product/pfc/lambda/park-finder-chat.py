@@ -1,170 +1,256 @@
 import json
+import os
 import boto3
-import time
+from typing import Dict, List, Any
 from datetime import datetime
-from typing import Dict, Any, Optional, Set
+from decimal import Decimal
 
 # AWS クライアントの初期化
-def init_aws_clients():
-    """AWS クライアントの初期化"""
-    return {
-        'bedrock': boto3.client('bedrock-runtime'),
-        'dynamodb': boto3.resource('dynamodb'),
-        'sqs': boto3.client('sqs'),
-        'article_table': boto3.resource('dynamodb').Table(get_parameter('/what-aws-news/dynamodb/article/table-name'))
-    }
+dynamodb = boto3.resource('dynamodb')
+bedrock_runtime = boto3.client('bedrock-runtime', region_name='us-east-1')
 
-def get_parameter(parameter_name: str) -> str:
-    """Parameter Storeからパラメータを取得"""
-    return boto3.client('ssm').get_parameter(Name=parameter_name, WithDecryption=True)['Parameter']['Value']
+# 環境変数
+TABLE_NAME = os.environ.get('DYNAMODB_TABLE_NAME', 'pfc-ParkingSpots-table')
+MODEL_ID = os.environ.get('BEDROCK_MODEL_ID', 'anthropic.claude-3-sonnet-20240229-v1:0')
 
-# AWS リソースの初期化
-aws = init_aws_clients()
-QUEUE_URL = get_parameter('/what-aws-news/sqs/translate/url')
+# システムプロンプト
+SYSTEM_PROMPT = """あなたは池袋エリアの駐輪場案内アシスタントです。
+ユーザーの質問に対して、提供された駐輪場データから最適な駐輪場を提案してください。
 
-def translate_with_bedrock(text: str, content_type: str = "不明") -> Optional[str]:
-    """Bedrockを使用してテキストを翻訳"""
-    print(f"\n=== {content_type}の処理を開始 ===")
-    
-    prompts = {
-        "タイトル": f"""Please translate the following English text to Japanese and make it concise like a news headline. 
-Follow these rules:
-1. Remove any unnecessary words at the end (e.g., 'になりました', 'しました', etc.)
-2. End with shorter phrases like 'に対応', '利用可能に', '開始', etc.
-3. Keep it concise while maintaining the key information
-4. Only return the translated text without any explanations
+以下の点を考慮して回答してください：
+- 空き状況（available/total）
+- 距離と徒歩時間
+- 料金（時間/日/月）
+- 営業時間
+- 対応車種
 
-Text to translate:
-{text}""",
-        "本文": f"""Please follow these steps:
-1. Translate the following English text to Japanese
-2. Then summarize the translated content in 2-3 concise sentences
-3. Return only the summary in Japanese, without any explanations or original text
+回答は親切で分かりやすく、絵文字を適度に使用してフレンドリーにしてください。
+必ず具体的な駐輪場名を挙げて提案してください。"""
 
-Text to process:
-{text}"""
-    }
-    
-    prompt_text = prompts.get(content_type)
-    if not prompt_text:
-        print(f"未対応のcontent_type: {content_type}")
-        return None
-
-    try:
-        for attempt in range(4):
-            try:
-                response = aws['bedrock'].invoke_model(
-                    modelId="anthropic.claude-3-5-sonnet-20240620-v1:0",
-                    body=json.dumps({
-                        "anthropic_version": "bedrock-2023-05-31",
-                        "messages": [{"role": "user", "content": [{"type": "text", "text": prompt_text}]}],
-                        "max_tokens": 4000,
-                        "temperature": 0
-                    })
-                )
-                
-                result = json.loads(response['body'].read())['content'][0]['text'].strip()
-                print(f"処理結果: {result}")
-                return result
-
-            except Exception as e:
-                wait_time = 3 * (3 ** attempt)
-                print(f"試行{attempt + 1}/4 - エラー: {str(e)}")
-                
-                if 'ThrottlingException' in str(e) and attempt < 3:
-                    print(f"{wait_time}秒待機します...")
-                    time.sleep(wait_time)
-                    continue
-                return None
-
-    except Exception as e:
-        print(f"翻訳エラー（{content_type}）: {e}")
-        return None
-
-def update_dynamodb_item(article_data: Dict[str, Any]) -> bool:
-    """DynamoDBの記事データを更新"""
-    try:
-        # 翻訳情報の更新
-        updated = aws['article_table'].update_item(
-            Key={'link': article_data['link'], '公開日': article_data['公開日']},
-            UpdateExpression='SET #tt = :title, #ts = :summary REMOVE #t, #b',
-            ExpressionAttributeNames={
-                '#tt': '翻訳タイトル',
-                '#ts': '翻訳本文',
-                '#t': 'タイトル',
-                '#b': '本文'
-            },
-            ExpressionAttributeValues={
-                ':title': article_data['translated_title'],
-                ':summary': article_data['translated_summary']
-            },
-            ReturnValues='ALL_NEW'
-        )
-        return bool(updated.get('Attributes'))
-    except Exception as e:
-        print(f"DynamoDB更新エラー: {e}")
-        return False
-
-def process_message(record: Dict[str, Any], processed_messages: Set[str]) -> bool:
-    """SQSメッセージの処理"""
-    message_id = record['messageId']
-    if message_id in processed_messages:
-        print(f"メッセージ {message_id} は既に処理済み")
-        return False
-        
-    processed_messages.add(message_id)
-    message_body = json.loads(record['body'])
-    
-    # 翻訳処理
-    translated_title = translate_with_bedrock(message_body['タイトル'], "タイトル")
-    time.sleep(30)  # APIレート制限回避
-    translated_summary = translate_with_bedrock(message_body['本文'], "本文")
-    
-    if not translated_title or not translated_summary:
-        return False
-
-    # 更新データの準備
-    article_data = {
-        'link': message_body['link'],
-        '公開日': message_body['公開日'],
-        'translated_title': translated_title,
-        'translated_summary': translated_summary
-    }
-
-    # DynamoDB更新と元データ削除
-    if update_dynamodb_item(article_data):
-        aws['sqs'].delete_message(
-            QueueUrl=QUEUE_URL,
-            ReceiptHandle=record['receiptHandle']
-        )
-        return True
-    return False
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
-    start_time = datetime.now()
+    """
+    メインのLambdaハンドラー
+    """
+    try:
+        # リクエストボディの解析
+        body = json.loads(event.get('body', '{}'))
+        user_message = body.get('message', '')
+        
+        if not user_message:
+            return create_response(400, {'error': 'メッセージが必要です'})
+        
+        # DynamoDBから駐輪場データを取得
+        parking_data = get_parking_data()
+        
+        # Bedrockでチャット応答を生成
+        response_data = generate_bedrock_response(user_message, parking_data)
+        
+        return create_response(200, response_data)
+        
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return create_response(500, {
+            'error': 'エラーが発生しました',
+            'message': 'しばらく時間をおいて再度お試しください'
+        })
+
+
+def get_parking_data() -> List[Dict[str, Any]]:
+    """
+    DynamoDBから駐輪場データを取得
+    """
+    table = dynamodb.Table(TABLE_NAME)
     
     try:
-        print("\n=== 翻訳処理開始 ===")
-        processed_messages: Set[str] = set()
-        processed_count = sum(1 for record in event['Records'] if process_message(record, processed_messages))
+        response = table.scan()
+        items = response.get('Items', [])
         
-        execution_time = (datetime.now() - start_time).total_seconds()
-        print(f"=== 翻訳処理終了 === 実行時間: {execution_time:.2f}秒\n")
+        # Decimalを通常の数値に変換
+        return [convert_decimal(item) for item in items]
         
-        return {
-            'statusCode': 200,
-            'body': json.dumps({
-                'message': f'{processed_count}件のメッセージを処理しました',
-                'execution_time': f"{execution_time:.2f}秒"
-            }, ensure_ascii=False)
-        }
-
     except Exception as e:
-        execution_time = (datetime.now() - start_time).total_seconds()
+        print(f"DynamoDB Error: {str(e)}")
+        return []
+
+
+def convert_decimal(obj: Any) -> Any:
+    """
+    DynamoDBのDecimal型を通常の数値型に変換
+    """
+    if isinstance(obj, list):
+        return [convert_decimal(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {key: convert_decimal(value) for key, value in obj.items()}
+    elif isinstance(obj, Decimal):
+        if obj % 1 == 0:
+            return int(obj)
+        else:
+            return float(obj)
+    else:
+        return obj
+
+
+def generate_bedrock_response(user_message: str, parking_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Bedrockを使用してチャット応答を生成
+    """
+    # 駐輪場データを文字列化
+    parking_data_str = '\n'.join([
+        f"- {p['name']}: 空き{p['capacity']['available']}/{p['capacity']['total']}台, "
+        f"徒歩{p['walkTime']}分({p['distance']}m), {p['fees']['daily']}円/日, {p['openHours']}"
+        for p in parking_data
+    ])
+    
+    # プロンプトの構築
+    prompt = f"""{SYSTEM_PROMPT}
+
+現在の駐輪場データ：
+{parking_data_str}
+
+ユーザーの質問: {user_message}
+
+この質問に対して、最適な駐輪場を提案してください。
+また、応答には以下のJSON形式で返してください：
+{{
+    "message": "ユーザーへの応答メッセージ",
+    "recommendedParkingIds": ["推奨する駐輪場のID（最大3つ）"],
+    "searchType": "available|nearest|cheapest|24hours|general"
+}}"""
+    
+    try:
+        # Bedrock API呼び出し
+        response = bedrock_runtime.invoke_model(
+            modelId=MODEL_ID,
+            contentType='application/json',
+            accept='application/json',
+            body=json.dumps({
+                "anthropic_version": "bedrock-2023-05-31",
+                "max_tokens": 1000,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                "temperature": 0.7,
+                "top_p": 0.9
+            })
+        )
+        
+        # レスポンスの解析
+        response_body = json.loads(response['body'].read())
+        claude_response = json.loads(response_body['content'][0]['text'])
+        
+        # 推奨された駐輪場の詳細情報を取得
+        recommended_lots = [
+            p for p in parking_data 
+            if p['id'] in claude_response['recommendedParkingIds']
+        ]
+        
+        # サジェスションを生成
+        suggestions = generate_suggestions(claude_response['searchType'])
+        
         return {
-            'statusCode': 500,
-            'body': json.dumps({
-                'error': f"エラーが発生しました: {e}",
-                'execution_time': f"{execution_time:.2f}秒"
-            }, ensure_ascii=False)
+            'type': claude_response['searchType'],
+            'message': claude_response['message'],
+            'parkingLots': recommended_lots,
+            'suggestions': suggestions,
+            'totalFound': len(recommended_lots)
         }
+        
+    except Exception as e:
+        print(f"Bedrock Error: {str(e)}")
+        # フォールバック処理
+        return get_fallback_response(user_message, parking_data)
+
+
+def generate_suggestions(search_type: str) -> List[str]:
+    """
+    検索タイプに応じたサジェスションを生成
+    """
+    suggestion_map = {
+        'available': ['もっと空いている場所', '24時間営業', '料金が安い順'],
+        'nearest': ['空き状況を確認', '料金を比較', '営業時間を確認'],
+        'cheapest': ['一番近い場所', '空き状況を確認', '月極料金'],
+        '24hours': ['空いている場所', '駅から近い順', '料金を確認'],
+        'general': ['空いている駐輪場', '一番近い駐輪場', '24時間営業', '料金が安い順']
+    }
+    
+    return suggestion_map.get(search_type, suggestion_map['general'])
+
+
+def get_fallback_response(message: str, parking_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Bedrockが失敗した場合のフォールバック処理
+    """
+    lower_message = message.lower()
+    
+    # キーワードベースの簡易マッチング
+    if '空' in message or '空き' in message or 'available' in lower_message:
+        available = sorted(
+            [p for p in parking_data if p['capacity']['available'] > 10],
+            key=lambda x: x['capacity']['available'],
+            reverse=True
+        )[:3]
+        
+        return {
+            'type': 'available',
+            'message': f'現在、{len(available)}件の駐輪場に空きがあります！🚲',
+            'parkingLots': available,
+            'suggestions': ['もっと空いている場所', '24時間営業', '料金が安い順']
+        }
+    
+    elif '近' in message or '最寄' in message or 'nearest' in lower_message:
+        nearest = sorted(parking_data, key=lambda x: x['distance'])[:3]
+        
+        return {
+            'type': 'nearest',
+            'message': '池袋駅から近い順に表示します',
+            'parkingLots': nearest,
+            'suggestions': ['空き状況を確認', '料金を比較', '営業時間を確認']
+        }
+    
+    elif '安' in message or 'cheap' in lower_message or '料金' in message:
+        cheapest = sorted(parking_data, key=lambda x: x['fees']['daily'])[:3]
+        
+        return {
+            'type': 'cheapest',
+            'message': '料金が安い順に表示します（1日料金）',
+            'parkingLots': cheapest,
+            'suggestions': ['一番近い場所', '空き状況を確認', '月極料金']
+        }
+    
+    elif '24時間' in message or '深夜' in message or '夜' in message:
+        all_day = [p for p in parking_data if '24時間' in p['openHours']]
+        
+        return {
+            'type': '24hours',
+            'message': f'24時間営業の駐輪場が{len(all_day)}件見つかりました',
+            'parkingLots': all_day,
+            'suggestions': ['空いている場所', '駅から近い順', '料金を確認']
+        }
+    
+    # デフォルト応答
+    return {
+        'type': 'general',
+        'message': '池袋エリアの駐輪場をご案内します。どのような条件でお探しですか？',
+        'parkingLots': parking_data[:3],
+        'suggestions': ['空いている駐輪場', '一番近い駐輪場', '24時間営業', '料金が安い順']
+    }
+
+
+def create_response(status_code: int, body: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    API Gatewayレスポンスを作成
+    """
+    return {
+        'statusCode': status_code,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type',
+            'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
+        },
+        'body': json.dumps(body, ensure_ascii=False)
+    }

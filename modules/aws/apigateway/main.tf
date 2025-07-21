@@ -229,8 +229,11 @@ resource "aws_apigatewayv2_route" "it" {
   operation_name = each.value.operation_name
   request_models = each.value.request_models
   route_response_selection_expression = each.value.route_response_selection_expression
+  
+  # Connect to integration if it exists
+  target = can(aws_apigatewayv2_integration.it[each.key]) ? "integrations/${aws_apigatewayv2_integration.it[each.key].id}" : null
 
-  # request_parameter configuration would go here if needed
+  depends_on = [aws_apigatewayv2_integration.it]
 }
 
 # HTTP API Integrations
@@ -287,27 +290,7 @@ resource "aws_apigatewayv2_integration" "it" {
   }
 }
 
-# HTTP API Route Integration
-resource "aws_apigatewayv2_route" "integration" {
-  for_each = {
-    for k, v in flatten([
-      for api_key, api in var.http_apis : [
-        for int_key, integration in api.integrations : {
-          key         = "${api_key}-${int_key}-integration"
-          api_key     = api_key
-          route_key   = integration.route_key
-          int_key     = int_key
-        }
-      ]
-    ]) : v.key => v if var.apigateway_type == "HTTP"
-  }
-
-  api_id    = aws_apigatewayv2_api.it[each.value.api_key].id
-  route_key = each.value.route_key
-  target    = "integrations/${aws_apigatewayv2_integration.it["${each.value.api_key}-${each.value.int_key}"].id}"
-
-  depends_on = [aws_apigatewayv2_integration.it]
-}
+# Routes are automatically connected to integrations via target attribute
 
 # HTTP API Stage
 resource "aws_apigatewayv2_stage" "it" {
@@ -338,5 +321,5 @@ resource "aws_apigatewayv2_stage" "it" {
     product = var.product
   }
 
-  depends_on = [aws_apigatewayv2_route.integration]
+  depends_on = [aws_apigatewayv2_route.it, aws_apigatewayv2_integration.it]
 }

@@ -22,6 +22,14 @@ resource "aws_lambda_function" "it" {
   ephemeral_storage {
     size = each.value.size
   }
+  
+  dynamic "environment" {
+    for_each = length(each.value.environment_variables) > 0 ? [each.value.environment_variables] : []
+    content {
+      variables = environment.value
+    }
+  }
+  
   tags = {
     Name    = "${var.product}-${each.key}"
     product = var.product
