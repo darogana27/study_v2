@@ -57,7 +57,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "it" {
       }
 
       dynamic "transition" {
-        for_each = rule.value.transitions
+        for_each = rule.value.transitions != null ? rule.value.transitions : []
         content {
           days          = transition.value.days
           storage_class = transition.value.storage_class
@@ -104,6 +104,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "it" {
 #   ignore_public_acls      = each.value.ignore_public_acls
 #   restrict_public_buckets = each.value.restrict_public_buckets
 # }
+
 
 resource "aws_s3_bucket_notification" "it" {
   for_each = { for k, v in var.s3_bucket : k => v if length(v.notifications) > 0 }
