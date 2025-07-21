@@ -7,9 +7,10 @@ terraform {
   }
 
   backend "s3" {
-    bucket = "terraform-state-2024-0218"
-    region = "ap-northeast-1"
-    key    = "what-aws-news"
+    bucket       = "terraform-state-2024-0218"
+    region       = "ap-northeast-1"
+    key          = "what-aws-news"
+    use_lockfile = true
   }
 }
 
