@@ -215,7 +215,6 @@ resource "aws_apigatewayv2_route" "it" {
           api_key_required                    = route.api_key_required
           operation_name                      = route.operation_name
           request_models                      = route.request_models
-          request_parameter                   = route.request_parameter
           route_response_selection_expression = route.route_response_selection_expression
         }
       ]
@@ -231,13 +230,7 @@ resource "aws_apigatewayv2_route" "it" {
   request_models = each.value.request_models
   route_response_selection_expression = each.value.route_response_selection_expression
 
-  dynamic "request_parameter" {
-    for_each = each.value.request_parameter
-    content {
-      location = request_parameter.value.location
-      required = request_parameter.value.required
-    }
-  }
+  # request_parameter configuration would go here if needed
 }
 
 # HTTP API Integrations
@@ -282,9 +275,16 @@ resource "aws_apigatewayv2_integration" "it" {
   payload_format_version    = each.value.payload_format_version
   request_parameters        = each.value.request_parameters
   request_templates         = each.value.request_templates
-  response_parameters       = each.value.response_parameters
   template_selection_expression = each.value.template_selection_expression
   timeout_milliseconds      = each.value.timeout_milliseconds
+
+  dynamic "response_parameters" {
+    for_each = each.value.response_parameters != null ? each.value.response_parameters : {}
+    content {
+      status_code = response_parameters.key
+      mappings    = response_parameters.value
+    }
+  }
 }
 
 # HTTP API Route Integration
@@ -322,13 +322,8 @@ resource "aws_apigatewayv2_stage" "it" {
   auto_deploy = each.value.stage.auto_deploy
   stage_variables = each.value.stage.variables
 
-  dynamic "throttle_settings" {
-    for_each = each.value.stage.throttle_settings != null ? [each.value.stage.throttle_settings] : []
-    content {
-      rate_limit  = throttle_settings.value.rate_limit
-      burst_limit = throttle_settings.value.burst_limit
-    }
-  }
+  # Note: throttle_settings is not supported in aws_apigatewayv2_stage
+  # Use route-level throttling or API-level throttling instead
 
   dynamic "access_log_settings" {
     for_each = each.value.stage.access_log_settings != null ? [each.value.stage.access_log_settings] : []

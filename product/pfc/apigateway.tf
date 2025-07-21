@@ -149,10 +149,6 @@ module "pfc_apigateway" {
         variables = {
           environment = "production"
         }
-        throttle_settings = {
-          rate_limit  = 1000
-          burst_limit = 2000
-        }
       }
 
       tags = {

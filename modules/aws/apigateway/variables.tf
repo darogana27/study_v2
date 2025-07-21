@@ -102,10 +102,6 @@ variable "http_apis" {
       api_key_required   = optional(bool, false)
       operation_name     = optional(string)
       request_models     = optional(map(string), {})
-      request_parameter  = optional(map(object({
-        location        = string
-        required        = bool
-      })), {})
       route_response_selection_expression = optional(string)
     })), {})
     
@@ -134,10 +130,7 @@ variable "http_apis" {
       deployment_id      = optional(string)
       variables          = optional(map(string), {})
       auto_deploy        = optional(bool, true)
-      throttle_settings = optional(object({
-        rate_limit  = optional(number)
-        burst_limit = optional(number)
-      }))
+      # throttle_settings not supported in HTTP API v2 stages
       access_log_settings = optional(object({
         destination_arn = string
         format         = optional(string)
