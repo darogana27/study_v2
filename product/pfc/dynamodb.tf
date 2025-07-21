@@ -13,7 +13,6 @@ module "dynamodb" {
       attributes = [
         { name = "link", type = "S" }, # パーティションキー属性
         { name = "公開日", type = "S" },  # ソートキー属性
-        { name = "取得日", type = "S" }   # GSIのパーティションキー属性を追加
       ]
       ttl = {
         attribute_name = "TimeToExist"
