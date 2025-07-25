@@ -1,15 +1,7 @@
 module "pfc_cloudfront" {
   source = "../../modules/aws/cloudfront"
 
-  cloudfront_oac = {
-    main_oac = {
-      name                              = "pfc-s3-oac"
-      description                       = "OAC for PFC S3 bucket access"
-      origin_access_control_origin_type = "s3"
-      signing_behavior                  = "always"
-      signing_protocol                  = "sigv4"
-    }
-  }
+  cloudfront_oac = {}
 
   cloudfront_distributions = {
     main = {
@@ -24,7 +16,7 @@ module "pfc_cloudfront" {
         {
           domain_name              = module.pfc_s3_bucket.s3_bucket_domain_name["pfc-temp-bucket"]
           origin_id                = "S3-pfc-temp-bucket"
-          origin_access_control_id = module.pfc_cloudfront.cloudfront_oac_id["main_oac"]
+          origin_access_control_id = module.pfc_cloudfront_oac.cloudfront_oac_ids["main_oac"]
         }
       ]
 
