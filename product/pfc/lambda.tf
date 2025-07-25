@@ -37,5 +37,42 @@ module "lambda_functions" {
         }
       ]
     }
+
+    parking-data-collector = {
+      filename    = "./lambda/parking-data-collector.zip"
+      handler     = "parking-data-collector.lambda_handler"
+      runtime     = "python3.13"
+      memory_size = 128
+      timeout     = 60
+      description = "PFC Parking Data Collector Function"
+
+      environment_variables = {
+        DYNAMODB_TABLE_NAME = "pfc-ParkingSpots-table"
+      }
+
+      additional_iam_policies = [
+        {
+          effect = "Allow"
+          actions = [
+            "dynamodb:GetItem",
+            "dynamodb:PutItem",
+            "dynamodb:UpdateItem",
+            "dynamodb:Scan",
+            "dynamodb:Query",
+            "dynamodb:BatchWriteItem"
+          ]
+          resources = ["arn:aws:dynamodb:${local.env.region}:${local.env.account_id}:table/${local.env.product}*"]
+        },
+        {
+          effect = "Allow"
+          actions = [
+            "logs:CreateLogGroup",
+            "logs:CreateLogStream",
+            "logs:PutLogEvents"
+          ]
+          resources = ["arn:aws:logs:${local.env.region}:${local.env.account_id}:*"]
+        }
+      ]
+    }
   }
 }
