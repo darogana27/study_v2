@@ -186,6 +186,22 @@ resource "aws_cloudwatch_log_group" "http_api_access_logs" {
   }
 }
 
+# CloudWatch Log Group for HTTP API Gateway Access Logs
+resource "aws_cloudwatch_log_group" "http_api_access_logs" {
+  for_each = {
+    for api_key, api in var.http_apis : api_key => api
+    if var.apigateway_type == "HTTP" && api.stage != null
+  }
+
+  name              = "/aws/apigateway/http/${var.product}-${each.value.name}"
+  retention_in_days = 14
+
+  tags = merge(each.value.tags, {
+    Name    = "${var.product}-${each.value.name}-access-logs"
+    product = var.product
+  })
+}
+
 # HTTP API Gateway Resources
 resource "aws_apigatewayv2_api" "it" {
   for_each = var.apigateway_type == "HTTP" ? var.http_apis : {}
