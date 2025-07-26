@@ -196,10 +196,10 @@ resource "aws_cloudwatch_log_group" "http_api_access_logs" {
   name              = "/aws/apigateway/http/${var.product}-${each.value.name}"
   retention_in_days = 14
 
-  tags = merge(each.value.tags, {
-    Name    = "${var.product}-${each.value.name}-access-logs"
-    product = var.product
-  })
+  tags = {
+    Name      = "${var.product}-${each.value.name}-access-logs"
+    ManagedBy = "terraform"
+  }
 }
 
 # HTTP API Gateway Resources

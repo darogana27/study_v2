@@ -23,9 +23,6 @@ module "parking_data_scheduler" {
       input_message_body   = ""
       input_queue_url      = ""
       additional_policies  = []
-      tags = merge(local.common_tags, {
-        ScheduleType = "data-collection"
-      })
     }
   }
 }
