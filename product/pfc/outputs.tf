@@ -1,7 +1,7 @@
 
 # Outputs
 output "s3_bucket_name" {
-  value = module.pfc_s3_bucket.s3_ids["pfc-temp-bucket"]
+  value = module.pfc_s3_bucket.s3_ids["temp-bucket"]
 }
 
 output "api_endpoint" {

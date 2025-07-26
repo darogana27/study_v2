@@ -4,8 +4,8 @@ module "pfc_s3_bucket" {
   product = local.env.product
 
   s3_bucket = {
-    pfc-temp-bucket = {
-      s3_bucket_name          = "pfc-temp-bucket"
+    temp-bucket = {
+      s3_bucket_name          = "temp-bucket"
       force_destroy           = false
       versioning_status       = "Suspended"
       encryption_algorithm    = "AES256"
