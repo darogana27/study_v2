@@ -1,0 +1,70 @@
+{
+  "parkingLots": [
+    {
+      "id": "ikebukuro-west-01",
+      "name": "池袋駅西口駐輪場",
+      "address": "東京都豊島区西池袋1-1-1",
+      "coordinates": {
+        "lat": 35.7295,
+        "lng": 139.7089
+      },
+      "capacity": {
+        "total": 150,
+        "available": 45
+      },
+      "fees": {
+        "hourly": 100,
+        "daily": 200,
+        "monthly": 2000
+      },
+      "bikeTypes": ["普通自転車", "電動自転車"],
+      "openHours": "24時間",
+      "distance": 150,
+      "walkTime": 2
+    },
+    {
+      "id": "ikebukuro-east-01",
+      "name": "池袋駅東口駐輪場",
+      "address": "東京都豊島区東池袋1-1-1",
+      "coordinates": {
+        "lat": 35.7301,
+        "lng": 139.7147
+      },
+      "capacity": {
+        "total": 200,
+        "available": 12
+      },
+      "fees": {
+        "hourly": 100,
+        "daily": 200,
+        "monthly": 2000
+      },
+      "bikeTypes": ["普通自転車", "電動自転車", "原付"],
+      "openHours": "5:00-25:00",
+      "distance": 200,
+      "walkTime": 3
+    },
+    {
+      "id": "metropolitan-01",
+      "name": "池袋メトロポリタン駐輪場",
+      "address": "東京都豊島区西池袋1-6-1",
+      "coordinates": {
+        "lat": 35.7318,
+        "lng": 139.7086
+      },
+      "capacity": {
+        "total": 100,
+        "available": 78
+      },
+      "fees": {
+        "hourly": 150,
+        "daily": 300,
+        "monthly": 3000
+      },
+      "bikeTypes": ["普通自転車", "電動自転車"],
+      "openHours": "6:00-24:00",
+      "distance": 350,
+      "walkTime": 5
+    }
+  ]
+}

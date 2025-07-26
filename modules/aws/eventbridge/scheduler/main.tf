@@ -22,8 +22,12 @@ resource "aws_scheduler_schedule" "it" {
 }
 
 resource "aws_scheduler_schedule_group" "it" {
-  name = format("%s-scheduler-group", var.product
-  )
+  name = format("%s-scheduler-group", var.product)
+
+  tags = {
+    Name      = "${var.product}-scheduler-group"
+    ManagedBy = "terraform"
+  }
 }
 
 resource "aws_iam_role" "it" {
@@ -43,6 +47,11 @@ resource "aws_iam_role" "it" {
       }
     ]
   })
+
+  tags = {
+    Name      = "${var.product}-${each.key}-role"
+    ManagedBy = "terraform"
+  }
 }
 
 resource "aws_iam_role_policy" "it" {
@@ -91,7 +100,7 @@ module "state_machines" {
     if v.use_step_function
   }
 
-  product = var.product
+  product     = var.product
   state_machine = {
     # scheduleのkeyを使用して動的に生成
     "${each.key}" = {

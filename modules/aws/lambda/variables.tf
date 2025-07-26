@@ -1,3 +1,14 @@
+variable "product" {
+  description = "Product名"
+  type        = string
+}
+
+variable "environment" {
+  description = "Environment (prod, dev, etc.)"
+  type        = string
+  default     = null
+}
+
 variable "lambda_functions" {
   description = "Lambda関数の設定をマップで定義します"
   type = map(object({
@@ -41,5 +52,6 @@ variable "lambda_functions" {
       max_receive_count         = optional(number)
       # visibility_timeout_seconds はLambdaのtimeoutから自動設定
     }))
+    environment_variables = optional(map(string), {})
   }))
 }

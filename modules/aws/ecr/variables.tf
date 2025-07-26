@@ -3,6 +3,12 @@ variable "product" {
   type        = string
 }
 
+variable "environment" {
+  description = "環境名"
+  type        = string
+  default     = null
+}
+
 variable "repositories" {
   description = "Map of ECR repositories to create"
   type = map(object({

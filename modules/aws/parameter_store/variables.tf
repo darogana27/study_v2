@@ -1,5 +1,12 @@
 variable "product" {
-  type = string
+  description = "product名"
+  type        = string
+}
+
+variable "environment" {
+  description = "環境名"
+  type        = string
+  default     = null
 }
 
 variable "parameters" {

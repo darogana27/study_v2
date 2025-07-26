@@ -1,0 +1,146 @@
+# Product Configuration
+product = "{{PRODUCT_NAME}}"
+
+# Lambda Functions
+lambda_functions = {
+  # example-function = {
+  #   runtime     = "python3.11"
+  #   handler     = "lambda_function.lambda_handler"
+  #   timeout     = 30
+  #   memory_size = 128
+  #   filename    = "lambda_function.zip"
+  #   environment_variables = {
+  #     ENV = "production"
+  #   }
+  # }
+}
+
+# S3 Buckets
+s3_bucket = {
+  # example-bucket = {
+  #   s3_bucket_name = "{{PRODUCT_NAME}}-example-bucket"
+  #   force_destroy  = false
+  #   versioning     = true
+  # }
+}
+
+# SQS Queues
+sqs = {
+  # example-queue = {
+  #   delay_seconds              = 0
+  #   max_message_size           = 262144
+  #   message_retention_seconds  = 345600
+  #   receive_wait_time_seconds  = 0
+  #   visibility_timeout_seconds = 30
+  # }
+}
+
+# DynamoDB Tables
+dynamodbs = {
+  # example-table = {
+  #   hash_key      = "id"
+  #   billing_mode  = "PAY_PER_REQUEST"
+  #   attributes = [
+  #     {
+  #       name = "id"
+  #       type = "S"
+  #     }
+  #   ]
+  # }
+}
+
+# ECR Repositories
+ecr = {
+  # example-repo = {
+  #   image_tag_mutability = "MUTABLE"
+  #   scan_on_push         = true
+  # }
+}
+
+# REST API Gateway
+rest_apis = {
+  # example-api = {
+  #   name        = "{{PRODUCT_NAME}}-api"
+  #   description = "{{PRODUCT_NAME}} REST API"
+  #   deployment = {
+  #     stage_name = "prod"
+  #   }
+  # }
+}
+
+# HTTP API Gateway
+http_apis = {
+  # example-http-api = {
+  #   name        = "{{PRODUCT_NAME}}-http-api"
+  #   description = "{{PRODUCT_NAME}} HTTP API"
+  #   stage = {
+  #     name = "prod"
+  #   }
+  # }
+}
+
+# CloudFront
+cloudfront = {
+  # example-distribution = {
+  #   comment = "{{PRODUCT_NAME}} CloudFront Distribution"
+  #   default_cache_behavior = {
+  #     target_origin_id = "S3-{{PRODUCT_NAME}}-bucket"
+  #   }
+  #   origin = [
+  #     {
+  #       domain_name = "{{PRODUCT_NAME}}-bucket.s3.{{REGION}}.amazonaws.com"
+  #       origin_id   = "S3-{{PRODUCT_NAME}}-bucket"
+  #     }
+  #   ]
+  # }
+}
+
+# EventBridge Scheduler
+scheduler = {
+  # example-schedule = {
+  #   schedule_expression = "rate(1 hour)"
+  #   target = {
+  #     arn      = "arn:aws:lambda:{{REGION}}:account-id:function:{{PRODUCT_NAME}}-function"
+  #     role_arn = "arn:aws:iam::account-id:role/{{PRODUCT_NAME}}-scheduler-role"
+  #   }
+  #   flexible_time_window = {
+  #     mode = "OFF"
+  #   }
+  # }
+}
+
+# Step Functions
+step_functions = {
+  # example-state-machine = {
+  #   definition = jsonencode({
+  #     Comment = "{{PRODUCT_NAME}} State Machine"
+  #     StartAt = "HelloWorld"
+  #     States = {
+  #       HelloWorld = {
+  #         Type = "Pass"
+  #         Result = "Hello World!"
+  #         End = true
+  #       }
+  #     }
+  #   })
+  # }
+}
+
+# SNS Topics
+sns = {
+  # example-topic = {
+  #   topic_name = "{{PRODUCT_NAME}}-notifications"
+  #   protocol   = "email"
+  #   endpoint   = "admin@example.com"
+  # }
+}
+
+# Parameter Store
+parameters = {
+  # example-param = {
+  #   name        = "/{{PRODUCT_NAME}}/config/example"
+  #   value       = "example-value"
+  #   description = "Example parameter for {{PRODUCT_NAME}}"
+  #   type        = "String"
+  # }
+}

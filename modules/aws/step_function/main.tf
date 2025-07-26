@@ -31,6 +31,11 @@ resource "aws_sfn_state_machine" "it" {
       definition
     ]
   }
+
+  tags = {
+    Name      = "${var.product}-${each.key}"
+    ManagedBy = "terraform"
+  }
 }
 
 resource "aws_iam_role" "it" {
@@ -49,6 +54,11 @@ resource "aws_iam_role" "it" {
       }
     ]
   })
+
+  tags = {
+    Name      = "${var.product}-${each.key}-role"
+    ManagedBy = "terraform"
+  }
 }
 
 resource "aws_iam_role_policy" "it" {

@@ -1,3 +1,14 @@
+variable "product" {
+  description = "product名"
+  type        = string
+}
+
+variable "environment" {
+  description = "環境名"
+  type        = string
+  default     = null
+}
+
 variable "s3_bucket" {
   description = "s3バケットの定義を設定します"
   type = map(object({

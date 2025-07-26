@@ -15,7 +15,7 @@ resource "aws_cloudfront_distribution" "it" {
     content {
       domain_name              = origin.value.domain_name
       origin_id                = origin.value.origin_id
-      origin_access_control_id = origin.value.origin_access_control_id
+      origin_access_control_id = try(aws_cloudfront_origin_access_control.it[origin.value.origin_access_control_id].id, origin.value.origin_access_control_id)
       origin_path              = origin.value.origin_path
 
       dynamic "s3_origin_config" {
@@ -104,7 +104,7 @@ resource "aws_cloudfront_distribution" "it" {
   viewer_certificate {
     cloudfront_default_certificate = each.value.viewer_certificate.cloudfront_default_certificate
     acm_certificate_arn            = each.value.viewer_certificate.acm_certificate_arn
-    ssl_support_method             = each.value.viewer_certificate.ssl_support_method
+    ssl_support_method             = each.value.viewer_certificate.acm_certificate_arn != null ? each.value.viewer_certificate.ssl_support_method : null
     minimum_protocol_version       = each.value.viewer_certificate.minimum_protocol_version
   }
 
@@ -117,7 +117,10 @@ resource "aws_cloudfront_distribution" "it" {
     }
   }
 
-  tags = each.value.tags
+  tags = {
+    Name      = "${var.product}-${each.key}"
+    ManagedBy = "terraform"
+  }
 }
 
 resource "aws_cloudfront_origin_access_control" "it" {
