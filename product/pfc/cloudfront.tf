@@ -1,11 +1,20 @@
 module "pfc_cloudfront" {
   source = "../../modules/aws/cloudfront"
 
-  cloudfront_oac = {}
+  # CloudFrontモジュール内でOACを作成
+  cloudfront_oac = {
+    main_oac = {
+      name                              = "${local.env.product}-s3-oac"
+      description                       = "OAC for ${local.env.product} S3 bucket access"
+      origin_access_control_origin_type = "s3"
+      signing_behavior                  = "always"
+      signing_protocol                  = "sigv4"
+    }
+  }
 
   cloudfront_distributions = {
     main = {
-      comment             = "PFC CloudFront Distribution"
+      comment             = "${local.env.product} CloudFront Distribution"
       default_root_object = "index.html"
       enabled             = true
       is_ipv6_enabled     = true
@@ -15,13 +24,13 @@ module "pfc_cloudfront" {
       origins = [
         {
           domain_name              = module.pfc_s3_bucket.s3_bucket_domain_name["pfc-temp-bucket"]
-          origin_id                = "S3-pfc-temp-bucket"
-          origin_access_control_id = module.pfc_cloudfront_oac.cloudfront_oac_ids["main_oac"]
+          origin_id                = "S3-${local.env.product}-temp-bucket"
+          origin_access_control_id = "main_oac"
         }
       ]
 
       default_cache_behavior = {
-        target_origin_id       = "S3-pfc-temp-bucket"
+        target_origin_id       = "S3-${local.env.product}-temp-bucket"
         viewer_protocol_policy = "redirect-to-https"
         allowed_methods        = ["GET", "HEAD", "OPTIONS"]
         cached_methods         = ["GET", "HEAD"]
@@ -43,7 +52,7 @@ module "pfc_cloudfront" {
       ordered_cache_behaviors = [
         {
           path_pattern           = "/api/*"
-          target_origin_id       = "S3-pfc-temp-bucket"
+          target_origin_id       = "S3-${local.env.product}-temp-bucket"
           viewer_protocol_policy = "https-only"
           allowed_methods        = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
           cached_methods         = ["GET", "HEAD"]
@@ -72,7 +81,8 @@ module "pfc_cloudfront" {
 
       viewer_certificate = {
         cloudfront_default_certificate = true
-        minimum_protocol_version       = "TLSv1.2_2021"
+        minimum_protocol_version       = "TLSv1"
+        acm_certificate_arn            = null
       }
 
       custom_error_responses = [
@@ -88,11 +98,9 @@ module "pfc_cloudfront" {
         }
       ]
 
-      tags = {
-        Name        = "pfc-cloudfront-distribution"
-        Environment = "production"
-        Service     = "pfc"
-      }
+      tags = merge(local.common_tags, {
+        Name = "${local.env.product}-cloudfront-distribution"
+      })
     }
   }
 }

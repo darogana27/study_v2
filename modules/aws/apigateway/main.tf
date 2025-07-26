@@ -170,6 +170,22 @@ resource "aws_api_gateway_stage" "it" {
   }
 }
 
+# CloudWatch Log Group for HTTP API Gateway Access Logs
+resource "aws_cloudwatch_log_group" "http_api_access_logs" {
+  for_each = {
+    for api_key, api in var.http_apis : api_key => api
+    if var.apigateway_type == "HTTP" && api.stage != null
+  }
+
+  name              = "/aws/apigateway/http/${var.product}-${each.value.name}"
+  retention_in_days = 14
+
+  tags = merge(each.value.tags, {
+    Name    = "${var.product}-${each.value.name}-access-logs"
+    product = var.product
+  })
+}
+
 # HTTP API Gateway Resources
 resource "aws_apigatewayv2_api" "it" {
   for_each = var.apigateway_type == "HTTP" ? var.http_apis : {}
@@ -308,12 +324,22 @@ resource "aws_apigatewayv2_stage" "it" {
   # Note: throttle_settings is not supported in aws_apigatewayv2_stage
   # Use route-level throttling or API-level throttling instead
 
-  dynamic "access_log_settings" {
-    for_each = each.value.stage.access_log_settings != null ? [each.value.stage.access_log_settings] : []
-    content {
-      destination_arn = access_log_settings.value.destination_arn
-      format          = access_log_settings.value.format
-    }
+  # Always enable access logging if stage is defined
+  access_log_settings {
+    destination_arn = aws_cloudwatch_log_group.http_api_access_logs[each.key].arn
+    format = coalesce(
+      try(each.value.stage.access_log_settings.format, null),
+      jsonencode({
+        requestId      = "$context.requestId"
+        ip             = "$context.identity.sourceIp"
+        requestTime    = "$context.requestTime"
+        httpMethod     = "$context.httpMethod"
+        routeKey       = "$context.routeKey"
+        status         = "$context.status"
+        protocol       = "$context.protocol"
+        responseLength = "$context.responseLength"
+      })
+    )
   }
 
   tags = {

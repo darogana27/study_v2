@@ -1,13 +1,13 @@
 module "pfc_apigateway" {
   source = "../../modules/aws/apigateway"
 
-  product         = "pfc"
+  product         = local.env.product
   apigateway_type = "HTTP"
 
   http_apis = {
     main = {
-      name        = "main-api"
-      description = "PFC Main HTTP API Gateway"
+      name        = "${local.env.product}-main-api"
+      description = "${local.env.product} Main HTTP API Gateway"
 
       cors_configuration = {
         allow_credentials = false
@@ -38,16 +38,15 @@ module "pfc_apigateway" {
       }
 
       stage = {
-        name        = "prod"
-        description = "Production stage for PFC API"
+        name        = local.env.environment
+        description = "${local.env.environment} stage for ${local.env.product} API"
         auto_deploy = true
+        variables   = null
       }
 
-      tags = {
-        Name        = "pfc-http-api"
-        Environment = "production"
-        Service     = "pfc"
-      }
+      tags = merge(local.common_tags, {
+        Name = "${local.env.product}-http-api"
+      })
     }
   }
 }
@@ -56,7 +55,7 @@ module "pfc_apigateway" {
 resource "aws_lambda_permission" "apigateway_invoke" {
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
-  function_name = "pfc-park-finder-chat-function"
+  function_name = "${local.env.product}-park-finder-chat-function"
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${module.pfc_apigateway.http_api_execution_arn["main"]}/*/*"
 }
