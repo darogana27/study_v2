@@ -14,10 +14,10 @@ resource "aws_api_gateway_rest_api" "it" {
     vpc_endpoint_ids = each.value.endpoint_configuration.vpc_endpoint_ids
   }
 
-  tags = merge(each.value.tags, {
-    Name    = "${var.product}-${each.value.name}"
-    product = var.product
-  })
+  tags = {
+    Name      = "${var.product}-${each.value.name}"
+    ManagedBy = "terraform"
+  }
 }
 
 # REST API Resources
@@ -165,8 +165,8 @@ resource "aws_api_gateway_stage" "it" {
   variables     = each.value.deployment.variables
 
   tags = {
-    Name    = "${var.product}-${each.value.name}-${each.value.deployment.stage_name}"
-    product = var.product
+    Name      = "${var.product}-${each.value.name}-${each.value.deployment.stage_name}"
+    ManagedBy = "terraform"
   }
 }
 
@@ -180,10 +180,10 @@ resource "aws_cloudwatch_log_group" "http_api_access_logs" {
   name              = "/aws/apigateway/http/${var.product}-${each.value.name}"
   retention_in_days = 14
 
-  tags = merge(each.value.tags, {
-    Name    = "${var.product}-${each.value.name}-access-logs"
-    product = var.product
-  })
+  tags = {
+    Name      = "${var.product}-${each.value.name}-access-logs"
+    ManagedBy = "terraform"
+  }
 }
 
 # HTTP API Gateway Resources
@@ -211,10 +211,10 @@ resource "aws_apigatewayv2_api" "it" {
     }
   }
 
-  tags = merge(each.value.tags, {
-    Name    = "${var.product}-${each.value.name}"
-    product = var.product
-  })
+  tags = {
+    Name      = "${var.product}-${each.value.name}"
+    ManagedBy = "terraform"
+  }
 }
 
 # HTTP API Routes
@@ -343,8 +343,8 @@ resource "aws_apigatewayv2_stage" "it" {
   }
 
   tags = {
-    Name    = "${var.product}-${each.value.name}-${each.value.stage.name}"
-    product = var.product
+    Name      = "${var.product}-${each.value.name}-${each.value.stage.name}"
+    ManagedBy = "terraform"
   }
 
   depends_on = [aws_apigatewayv2_route.it, aws_apigatewayv2_integration.it]

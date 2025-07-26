@@ -17,8 +17,7 @@ provider "aws" {
   region = "ap-northeast-1"
   default_tags {
     tags = {
-      product = "pfc"
-      created = "terraform"
+      Product = "pfc"
     }
   }
 }

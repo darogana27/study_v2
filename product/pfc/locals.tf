@@ -10,13 +10,7 @@ locals {
   dynamodb_table_name = "${local.env.product}-ParkingSpots-table"
   s3_bucket_name      = "${local.env.product}-temp-bucket-bucket"
 
-  # 共通タグ
-  common_tags = {
-    Product     = local.env.product
-    Environment = local.env.environment
-    ManagedBy   = "terraform"
-    Project     = "parking-finder-chat"
-  }
+  # 共通タグは削除 - プロバイダーレベルとモジュール側で管理
 
   # Lambda共通設定
   lambda_common = {

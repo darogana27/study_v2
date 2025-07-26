@@ -10,7 +10,6 @@ module "dynamodb" {
       attributes = [
         { name = "id", type = "S" } # パーティションキー属性
       ]
-      tags = local.common_tags
     }
   }
 }

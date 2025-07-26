@@ -3,6 +3,12 @@ variable "product" {
   type        = string
 }
 
+variable "environment" {
+  description = "環境名"
+  type        = string
+  default     = null
+}
+
 variable "apigateway_type" {
   description = "API Gateway type: 'REST' or 'HTTP'"
   type        = string

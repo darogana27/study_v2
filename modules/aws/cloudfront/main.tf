@@ -117,7 +117,10 @@ resource "aws_cloudfront_distribution" "it" {
     }
   }
 
-  tags = each.value.tags
+  tags = {
+    Name      = "${var.product}-${each.key}"
+    ManagedBy = "terraform"
+  }
 }
 
 resource "aws_cloudfront_origin_access_control" "it" {

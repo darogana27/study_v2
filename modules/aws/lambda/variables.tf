@@ -1,3 +1,14 @@
+variable "product" {
+  description = "Product名"
+  type        = string
+}
+
+variable "environment" {
+  description = "Environment (prod, dev, etc.)"
+  type        = string
+  default     = null
+}
+
 variable "lambda_functions" {
   description = "Lambda関数の設定をマップで定義します"
   type = map(object({

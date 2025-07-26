@@ -3,6 +3,11 @@ resource "aws_s3_bucket" "it" {
 
   bucket        = format("%s-bucket", each.value.s3_bucket_name)
   force_destroy = each.value.force_destroy
+
+  tags = {
+    Name      = "${var.product}-${each.key}"
+    ManagedBy = "terraform"
+  }
 }
 
 resource "aws_s3_bucket_accelerate_configuration" "it" {

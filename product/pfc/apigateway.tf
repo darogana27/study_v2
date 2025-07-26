@@ -38,15 +38,12 @@ module "pfc_apigateway" {
       }
 
       stage = {
-        name        = local.env.environment
-        description = "${local.env.environment} stage for ${local.env.product} API"
+        name        = "dev"
+        description = "dev stage for ${local.env.product} API"
         auto_deploy = true
         variables   = null
       }
 
-      tags = merge(local.common_tags, {
-        Name = "${local.env.product}-http-api"
-      })
     }
   }
 }

@@ -1,8 +1,3 @@
-variable "product" {
-  description = "product名"
-  type        = string
-}
-
 resource "aws_lambda_function" "it" {
   for_each = var.lambda_functions
 
@@ -31,8 +26,8 @@ resource "aws_lambda_function" "it" {
   }
   
   tags = {
-    Name    = "${var.product}-${each.key}"
-    product = var.product
+    Name      = "${var.product}-${each.key}"
+    ManagedBy = "terraform"
   }
 
   depends_on = [aws_cloudwatch_log_group.it]
@@ -51,7 +46,8 @@ resource "aws_cloudwatch_log_group" "it" {
   name              = "/aws/lambda/${var.product}-${each.key}-function"
   retention_in_days = 30
   tags = {
-    Name = "${var.product}-${each.key}"
+    Name      = "${var.product}-${each.key}"
+    ManagedBy = "terraform"
   }
 }
 
@@ -61,7 +57,8 @@ resource "aws_iam_role" "it" {
   name               = format("%s-%s-function-role", var.product, each.key)
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
   tags = {
-    Name = "${var.product}-${each.key}"
+    Name      = "${var.product}-${each.key}"
+    ManagedBy = "terraform"
   }
 }
 

@@ -18,8 +18,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      product = "tg-daily-notify"
-      created = "terraform"
+      Product = "tg-daily-notify"
     }
   }
 }

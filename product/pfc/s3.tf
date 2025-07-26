@@ -1,6 +1,8 @@
 module "pfc_s3_bucket" {
   source = "../../modules/aws/s3"
 
+  product = local.env.product
+
   s3_bucket = {
     pfc-temp-bucket = {
       s3_bucket_name          = "pfc-temp-bucket"
@@ -11,7 +13,6 @@ module "pfc_s3_bucket" {
       block_public_policy     = false
       ignore_public_acls      = false
       restrict_public_buckets = false
-      tags                    = local.common_tags
 
       lifecycle_rules = [
         {

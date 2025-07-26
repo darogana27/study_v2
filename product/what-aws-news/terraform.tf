@@ -18,8 +18,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      product = "what-aws-news"
-      created = "terraform"
+      Product = "what-aws-news"
     }
   }
 }

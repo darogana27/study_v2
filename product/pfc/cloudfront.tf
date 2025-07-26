@@ -1,6 +1,8 @@
 module "pfc_cloudfront" {
   source = "../../modules/aws/cloudfront"
 
+  product = local.env.product
+
   # CloudFrontモジュール内でOACを作成
   cloudfront_oac = {
     main_oac = {
@@ -98,9 +100,6 @@ module "pfc_cloudfront" {
         }
       ]
 
-      tags = merge(local.common_tags, {
-        Name = "${local.env.product}-cloudfront-distribution"
-      })
     }
   }
 }
