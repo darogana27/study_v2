@@ -16,7 +16,8 @@ resource "aws_sqs_queue" "it" {
     maxReceiveCount     = try(each.value.max_receive_count, 4)
   })
   tags = {
-    Name = "${var.product}-${each.key}"
+    Name      = "${var.product}-${each.key}"
+    ManagedBy = "terraform"
   }
 }
 
@@ -25,7 +26,8 @@ resource "aws_sqs_queue" "deadletter" {
   name     = format("%s-%s-queue-deadletter", var.product, each.key)
 
   tags = {
-    Name = "${var.product}-${each.key}"
+    Name      = "${var.product}-${each.key}"
+    ManagedBy = "terraform"
   }
 }
 
@@ -61,7 +63,8 @@ resource "aws_ssm_parameter" "sqs_url" {
   value    = aws_sqs_queue.it[each.key].url
 
   tags = {
-    Name = "${var.product}-${each.key}"
+    Name      = "${var.product}-${each.key}"
+    ManagedBy = "terraform"
   }
 }
 
@@ -73,6 +76,7 @@ resource "aws_ssm_parameter" "deadletter_sqs_url" {
   value    = aws_sqs_queue.deadletter[each.key].url
 
   tags = {
-    Name = "${var.product}-${each.key}"
+    Name      = "${var.product}-${each.key}"
+    ManagedBy = "terraform"
   }
 }
