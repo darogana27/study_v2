@@ -12,7 +12,7 @@ module "lambda_functions" {
       description = "PFC Park Finder Chat Function"
 
       environment_variables = merge(local.lambda_common.environment_variables, {
-        BEDROCK_MODEL_ID = "anthropic.claude-3-sonnet-20240229-v1:0"
+        BEDROCK_MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0"
       })
 
       additional_iam_policies = [
