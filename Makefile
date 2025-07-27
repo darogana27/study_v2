@@ -57,6 +57,7 @@ create-product: ## Create a new product from template
 	@find "$(PRODUCT_DIR)/$(name)" -type f -exec sed -i 's/{{name}}/$(name)/g' {} \;
 	@find "$(PRODUCT_DIR)/$(name)" -type f -exec sed -i 's/{{region}}/$(region)/g' {} \;
 	@find "$(PRODUCT_DIR)/$(name)" -type f -exec sed -i 's/{{terraform_state_bucket}}/$(TERRAFORM_STATE_BUCKET)/g' {} \;
+	@find "$(PRODUCT_DIR)/$(name)" -type f -exec sed -i 's/{{tfstate_key}}/product\/$(name).tfstate/g' {} \;
 	@echo "# Terraform files" > "$(PRODUCT_DIR)/$(name)/.gitignore"
 	@echo "*.tfstate" >> "$(PRODUCT_DIR)/$(name)/.gitignore"
 	@echo "*.tfstate.*" >> "$(PRODUCT_DIR)/$(name)/.gitignore"

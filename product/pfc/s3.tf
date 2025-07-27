@@ -5,7 +5,7 @@ module "pfc_s3_bucket" {
 
   s3_bucket = {
     temp-bucket = {
-      s3_bucket_name          = "temp-bucket"
+      s3_bucket_name          = "pfc-temp"
       force_destroy           = false
       versioning_status       = "Suspended"
       encryption_algorithm    = "AES256"
