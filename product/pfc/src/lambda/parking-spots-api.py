@@ -76,18 +76,41 @@ def format_for_frontend(parking_data: List[Dict[str, Any]]) -> List[Dict[str, An
             available = spot['capacity']['available']
             occupancy_rate = int(((total - available) / total) * 100) if total > 0 else 0
             
+            # 料金詳細の情報をフォーマット
+            fee_details = spot['fees'].get('details', f"1日{spot['fees']['daily']}円")
+            free_time = spot['fees'].get('freeTime', 0)
+            
+            # 無料時間がある場合の表示
+            free_badge = ""
+            if free_time > 0:
+                if free_time >= 60:
+                    free_badge = f"{free_time//60}時間無料"
+                else:
+                    free_badge = f"{free_time}分無料"
+                price_display = f"1日{spot['fees']['daily']}円"
+            else:
+                price_display = f"1日{spot['fees']['daily']}円"
+            
             formatted_spot = {
                 'id': spot['id'],
                 'name': spot['name'],
                 'address': spot['address'],
+                'lat': spot.get('lat', 0),
+                'lng': spot.get('lng', 0),
                 'distance': f"{spot['distance']}m",
                 'walkTime': f"徒歩{spot['walkTime']}分",
-                'price': f"1日{spot['fees']['daily']}円",
+                'price': price_display,
+                'priceDetails': fee_details,
+                'freeBadge': free_badge,
                 'hours': spot['openHours'],
                 'vehicleTypes': ', '.join(spot['vehicleTypes']),
+                'paymentMethods': ', '.join(spot.get('paymentMethods', ['現金'])),
+                'paymentMethodsList': spot.get('paymentMethods', ['現金']),
                 'occupancyRate': occupancy_rate,
                 'available': available,
                 'total': total,
+                'availabilityText': f"空き {available}台 / 全{total}台",
+                'availabilityShort': f"空き{available}台",
                 'lastUpdated': spot.get('lastUpdated', '')
             }
             
