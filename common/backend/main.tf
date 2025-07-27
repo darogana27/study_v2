@@ -6,7 +6,8 @@ resource "aws_s3_bucket" "terraform_state" {
 
   tags = {
     Name        = "Terraform State Bucket"
-    Environment = "shared"
+    Environment = "common"
+    ManagedBy   = "Terraform"
   }
 }
 
