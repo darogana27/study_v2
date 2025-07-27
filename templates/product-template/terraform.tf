@@ -5,13 +5,21 @@ terraform {
       version = "~> 5.0"
     }
   }
+
+  backend "s3" {
+    bucket         = "{{terraform_state_bucket}}"
+    key            = "{{name}}.tfstate"
+    region         = "{{region}}"
+    encrypt        = true
+    use_lockfile   = true
+  }
 }
 
 provider "aws" {
-  region = "{{REGION}}"
+  region = "{{region}}"
   default_tags {
     tags = {
-      Product = "{{PRODUCT_NAME}}"
+      Product = "{{name}}"
     }
   }
 }
