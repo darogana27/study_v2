@@ -23,7 +23,7 @@ module "lambda_functions" {
           actions = [
             "bedrock:InvokeModel"
           ]
-          resources = ["arn:aws:bedrock:*:*:model/anthropic.claude-3-sonnet*"]
+          resources = ["arn:aws:bedrock:ap-northeast-1:*:model/anthropic.claude-3-sonnet*"]
         }
       ]
     }
@@ -35,6 +35,22 @@ module "lambda_functions" {
       memory_size = 128
       timeout     = 60
       description = "PFC Parking Data Collector Function"
+
+      environment_variables = local.lambda_common.environment_variables
+
+      additional_iam_policies = [
+        local.lambda_common.dynamodb_permissions,
+        local.lambda_common.cloudwatch_permissions
+      ]
+    }
+
+    parking-spots-api = {
+      filename    = "../src/lambda/builds/parking-spots-api.zip"
+      handler     = "parking-spots-api.lambda_handler"
+      runtime     = local.lambda_common.runtime
+      memory_size = 128
+      timeout     = 30
+      description = "PFC Parking Spots API Function"
 
       environment_variables = local.lambda_common.environment_variables
 

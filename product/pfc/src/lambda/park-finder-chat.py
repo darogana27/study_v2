@@ -7,7 +7,7 @@ from decimal import Decimal
 
 # AWS クライアントの初期化
 dynamodb = boto3.resource('dynamodb')
-bedrock_runtime = boto3.client('bedrock-runtime', region_name='us-east-1')
+bedrock_runtime = boto3.client('bedrock-runtime', region_name='ap-northeast-1')
 
 # 環境変数
 TABLE_NAME = os.environ.get('DYNAMODB_TABLE_NAME', 'pfc-ParkingSpots-table')
@@ -43,8 +43,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # DynamoDBから駐輪場データを取得
         parking_data = get_parking_data()
         
-        # Bedrockでチャット応答を生成
-        response_data = generate_bedrock_response(user_message, parking_data)
+        # フォールバック応答を使用（Bedrock設定後に修正予定）
+        response_data = get_fallback_response(user_message, parking_data)
         
         return create_response(200, response_data)
         
@@ -152,8 +152,8 @@ def generate_bedrock_response(user_message: str, parking_data: List[Dict[str, An
         suggestions = generate_suggestions(claude_response['searchType'])
         
         return {
+            'response': claude_response['message'],
             'type': claude_response['searchType'],
-            'message': claude_response['message'],
             'parkingLots': recommended_lots,
             'suggestions': suggestions,
             'totalFound': len(recommended_lots)
@@ -195,8 +195,8 @@ def get_fallback_response(message: str, parking_data: List[Dict[str, Any]]) -> D
         )[:3]
         
         return {
+            'response': f'現在、{len(available)}件の駐輪場に空きがあります！🚲',
             'type': 'available',
-            'message': f'現在、{len(available)}件の駐輪場に空きがあります！🚲',
             'parkingLots': available,
             'suggestions': ['もっと空いている場所', '24時間営業', '料金が安い順']
         }
@@ -205,8 +205,8 @@ def get_fallback_response(message: str, parking_data: List[Dict[str, Any]]) -> D
         nearest = sorted(parking_data, key=lambda x: x['distance'])[:3]
         
         return {
+            'response': '池袋駅から近い順に表示します',
             'type': 'nearest',
-            'message': '池袋駅から近い順に表示します',
             'parkingLots': nearest,
             'suggestions': ['空き状況を確認', '料金を比較', '営業時間を確認']
         }
@@ -215,8 +215,8 @@ def get_fallback_response(message: str, parking_data: List[Dict[str, Any]]) -> D
         cheapest = sorted(parking_data, key=lambda x: x['fees']['daily'])[:3]
         
         return {
+            'response': '料金が安い順に表示します（1日料金）',
             'type': 'cheapest',
-            'message': '料金が安い順に表示します（1日料金）',
             'parkingLots': cheapest,
             'suggestions': ['一番近い場所', '空き状況を確認', '月極料金']
         }
@@ -225,16 +225,16 @@ def get_fallback_response(message: str, parking_data: List[Dict[str, Any]]) -> D
         all_day = [p for p in parking_data if '24時間' in p['openHours']]
         
         return {
+            'response': f'24時間営業の駐輪場が{len(all_day)}件見つかりました',
             'type': '24hours',
-            'message': f'24時間営業の駐輪場が{len(all_day)}件見つかりました',
             'parkingLots': all_day,
             'suggestions': ['空いている場所', '駅から近い順', '料金を確認']
         }
     
     # デフォルト応答
     return {
+        'response': '池袋エリアの駐輪場をご案内します。どのような条件でお探しですか？',
         'type': 'general',
-        'message': '池袋エリアの駐輪場をご案内します。どのような条件でお探しですか？',
         'parkingLots': parking_data[:3],
         'suggestions': ['空いている駐輪場', '一番近い駐輪場', '24時間営業', '料金が安い順']
     }

@@ -73,10 +73,21 @@
             <p>バックエンドAPIとデータ収集システムが正常に動作しています</p>
         </div>
 
-        <div class="coming-soon">
-            <h3>🚧 フロントエンド開発中</h3>
-            <p>現在、ユーザーインターフェースを開発中です。<br>
-            完成までしばらくお待ちください。</p>
+        <div id="parkingData" class="feature-list">
+            <h3>🚲 駐輪場混雑状況</h3>
+            <div id="loadingMessage">データを読み込み中...</div>
+            <div id="parkingList" style="display: none;"></div>
+        </div>
+
+        <div class="feature-list">
+            <h3>💬 チャット検索</h3>
+            <div id="chatContainer">
+                <div id="chatMessages" style="height: 200px; overflow-y: auto; border: 1px solid #e2e8f0; padding: 10px; margin-bottom: 10px; border-radius: 5px;"></div>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="chatInput" placeholder="駐輪場について質問してください..." style="flex: 1; padding: 10px; border: 1px solid #e2e8f0; border-radius: 5px;">
+                    <button id="sendButton" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">送信</button>
+                </div>
+            </div>
         </div>
 
         <div class="feature-list">
@@ -91,9 +102,117 @@
         </div>
 
         <div style="text-align: center; margin-top: 30px; color: #666;">
-            <p>🏗️ 軽量構成で運用中（月額約$20）</p>
+            <p>🏗️ 軽量構成で運用中（月額約$0.80）</p>
             <p><small>対象エリア: 池袋駅周辺 | 更新間隔: 10分</small></p>
         </div>
     </div>
+
+    <script>
+        const API_ENDPOINT = 'https://xckspu9thj.execute-api.ap-northeast-1.amazonaws.com/dev';
+        
+        async function loadParkingData() {
+            try {
+                const response = await fetch(`${API_ENDPOINT}/parking-spots`);
+                const data = await response.json();
+                
+                document.getElementById('loadingMessage').style.display = 'none';
+                document.getElementById('parkingList').style.display = 'block';
+                
+                const parkingList = document.getElementById('parkingList');
+                parkingList.innerHTML = data.map(spot => `
+                    <div style="border: 1px solid #e2e8f0; border-radius: 5px; padding: 15px; margin: 10px 0;">
+                        <h4 style="margin: 0 0 10px 0; color: #4a5568;">${spot.name}</h4>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <p style="margin: 5px 0; color: #666;">
+                                    📍 ${spot.address}<br>
+                                    💰 ${spot.price}<br>
+                                    🕒 ${spot.hours}
+                                </p>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 2em; margin-bottom: 5px;">
+                                    ${spot.occupancyRate > 80 ? '🔴' : spot.occupancyRate > 50 ? '🟡' : '🟢'}
+                                </div>
+                                <div style="font-weight: bold; color: ${spot.occupancyRate > 80 ? '#e53e3e' : spot.occupancyRate > 50 ? '#d69e2e' : '#38a169'};">
+                                    ${spot.occupancyRate}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                document.getElementById('loadingMessage').innerHTML = 'データの読み込みに失敗しました';
+                console.error('Error loading parking data:', error);
+            }
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const chatMessages = document.getElementById('chatMessages');
+            
+            chatMessages.innerHTML += `
+                <div style="margin-bottom: 10px; text-align: right;">
+                    <div style="background: #667eea; color: white; padding: 8px 12px; border-radius: 10px; display: inline-block; max-width: 70%;">
+                        ${message}
+                    </div>
+                </div>
+            `;
+            
+            input.value = '';
+            
+            chatMessages.innerHTML += `
+                <div style="margin-bottom: 10px;">
+                    <div style="background: #f7fafc; padding: 8px 12px; border-radius: 10px; display: inline-block; max-width: 70%;">
+                        回答を生成中...
+                    </div>
+                </div>
+            `;
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            try {
+                const response = await fetch(`${API_ENDPOINT}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+                
+                const data = await response.json();
+                
+                const lastMessage = chatMessages.lastElementChild;
+                lastMessage.innerHTML = `
+                    <div style="background: #f7fafc; padding: 8px 12px; border-radius: 10px; display: inline-block; max-width: 70%;">
+                        ${data.response || 'エラーが発生しました'}
+                    </div>
+                `;
+                
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            } catch (error) {
+                const lastMessage = chatMessages.lastElementChild;
+                lastMessage.innerHTML = `
+                    <div style="background: #fed7d7; padding: 8px 12px; border-radius: 10px; display: inline-block; max-width: 70%;">
+                        エラーが発生しました。しばらく後でお試しください。
+                    </div>
+                `;
+                console.error('Error sending chat message:', error);
+            }
+        }
+
+        document.getElementById('sendButton').addEventListener('click', sendChatMessage);
+        document.getElementById('chatInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendChatMessage();
+            }
+        });
+
+        loadParkingData();
+        setInterval(loadParkingData, 600000);
+    </script>
 </body>
 </html>

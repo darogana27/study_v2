@@ -1,7 +1,6 @@
 import json
 import os
 import boto3
-import requests
 from typing import Dict, List, Any
 from datetime import datetime
 import logging
