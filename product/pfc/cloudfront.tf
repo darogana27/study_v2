@@ -25,7 +25,7 @@ module "pfc_cloudfront" {
 
       origins = [
         {
-          domain_name              = module.pfc_s3_bucket.s3_bucket_domain_name["temp-bucket"]
+          domain_name              = module.pfc_s3_bucket.s3_bucket_regional_domain_name["temp-bucket"]
           origin_id                = "S3-${local.env.product}-temp-bucket"
           origin_access_control_id = "main_oac"
         }

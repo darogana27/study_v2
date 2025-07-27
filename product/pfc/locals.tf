@@ -8,9 +8,6 @@ locals {
 
   # 共通リソース名
   dynamodb_table_name = "${local.env.product}-ParkingSpots-table"
-  s3_bucket_name      = "${local.env.product}-temp-bucket-20250727-${substr(md5("${local.env.product}-${local.env.account_id}"), 0, 8)}"
-
-  # 共通タグは削除 - プロバイダーレベルとモジュール側で管理
 
   # Lambda共通設定
   lambda_common = {
