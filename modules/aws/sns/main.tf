@@ -12,8 +12,8 @@ resource "aws_sns_topic" "it" {
   name     = format("%s-topic", each.value.name)
 
   tags = {
-    Name    = "${var.product}-${each.key}"
-    product = var.product
+    Name      = "${var.product}-${each.key}"
+    ManagedBy = "terraform"
   }
 }
 

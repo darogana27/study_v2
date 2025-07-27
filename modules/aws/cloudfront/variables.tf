@@ -1,3 +1,14 @@
+variable "product" {
+  description = "product名"
+  type        = string
+}
+
+variable "environment" {
+  description = "環境名"
+  type        = string
+  default     = null
+}
+
 variable "cloudfront_distributions" {
   description = "CloudFrontディストリビューションの設定を定義します"
   type = map(object({

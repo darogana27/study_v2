@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PFC - 駐輪場リアルタイム混雑状況確認ツール</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #4a5568;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        .status {
+            background: #e6fffa;
+            border: 2px solid #4fd1c7;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .coming-soon {
+            background: #fff5f5;
+            border: 2px solid #fc8181;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .feature-list {
+            background: #f7fafc;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .feature-list ul {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .feature-list li:before {
+            content: "🚲 ";
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚲 PFC</h1>
+        <h2 style="text-align: center; color: #666;">駐輪場リアルタイム混雑状況確認ツール</h2>
+        
+        <div class="status">
+            <h3>✅ システム稼働中</h3>
+            <p>バックエンドAPIとデータ収集システムが正常に動作しています</p>
+        </div>
+
+        <div class="coming-soon">
+            <h3>🚧 フロントエンド開発中</h3>
+            <p>現在、ユーザーインターフェースを開発中です。<br>
+            完成までしばらくお待ちください。</p>
+        </div>
+
+        <div class="feature-list">
+            <h3>📋 予定機能</h3>
+            <ul>
+                <li>池袋エリアの駐輪場リアルタイム空き状況表示</li>
+                <li>チャット形式での駐輪場検索</li>
+                <li>距離・料金・営業時間での絞り込み</li>
+                <li>10分間隔での自動データ更新</li>
+                <li>レスポンシブデザイン対応</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; color: #666;">
+            <p>🏗️ 軽量構成で運用中（月額約$20）</p>
+            <p><small>対象エリア: 池袋駅周辺 | 更新間隔: 10分</small></p>
+        </div>
+    </div>
+</body>
+</html>

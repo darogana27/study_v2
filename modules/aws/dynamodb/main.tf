@@ -43,8 +43,8 @@ resource "aws_dynamodb_table" "it" {
   }
 
   tags = {
-    Name    = "${var.product}-${each.key}"
-    product = var.product
+    Name      = "${var.product}-${each.key}"
+    ManagedBy = "terraform"
   }
 }
 
@@ -55,7 +55,7 @@ resource "aws_ssm_parameter" "dynamodb_table_name" {
   value    = aws_dynamodb_table.it[each.key].name
 
   tags = {
-    Name    = "${var.product}-${each.key}"
-    product = var.product
+    Name      = "${var.product}-${each.key}"
+    ManagedBy = "terraform"
   }
 }

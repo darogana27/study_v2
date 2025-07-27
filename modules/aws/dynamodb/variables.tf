@@ -3,6 +3,12 @@ variable "product" {
   type        = string
 }
 
+variable "environment" {
+  description = "環境名"
+  type        = string
+  default     = null
+}
+
 variable "dynamodbs" {
   description = "DynamoDBの作成"
   type = map(object({
