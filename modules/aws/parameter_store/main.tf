@@ -7,13 +7,10 @@ resource "aws_ssm_parameter" "this" {
   value = each.value.value
   tier  = each.value.tier
 
-  tags = merge(
-    {
-      Name    = "${var.product}-${each.key}"
-      product = var.product
-    },
-    each.value.tags
-  )
+  tags = {
+    Name      = "${var.product}-${each.key}"
+    ManagedBy = "terraform"
+  }
 
   lifecycle {
     ignore_changes = [value]

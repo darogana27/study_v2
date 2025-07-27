@@ -1,4 +1,8 @@
-variable "product" {}
+variable "product" {
+  description = "product名"
+  type        = string
+}
+
 
 variable "schedules" {
   description = "スケジュールのリスト"

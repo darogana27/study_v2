@@ -10,7 +10,7 @@ resource "aws_ecr_repository" "it" {
   }
 
   tags = {
-    Name    = "${var.product}-${each.key}"
-    product = var.product
+    Name      = "${var.product}-${each.key}"
+    ManagedBy = "terraform"
   }
 }

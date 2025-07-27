@@ -7,10 +7,9 @@ terraform {
   }
 
   backend "s3" {
-    bucket       = "terraform-state-2024-0218"
-    region       = "ap-northeast-1"
-    key          = "amount-of-electicity-terraform.tfstate"
-    use_lockfile = true
+    bucket = "terraform-state-2024-0218"
+    region = "ap-northeast-1"
+    key    = "product/tg-daily-notify.tfstate"
   }
 }
 
@@ -19,8 +18,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      product = "tg-daily-notify"
-      created = "terraform"
+      Product = "tg-daily-notify"
     }
   }
 }
