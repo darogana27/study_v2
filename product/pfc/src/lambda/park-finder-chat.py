@@ -7,7 +7,7 @@ from decimal import Decimal
 
 # AWS クライアントの初期化
 dynamodb = boto3.resource('dynamodb')
-bedrock_runtime = boto3.client('bedrock-runtime', region_name='us-east-1')
+bedrock_runtime = boto3.client('bedrock-runtime', region_name='ap-northeast-1')
 
 # 環境変数
 TABLE_NAME = os.environ.get('DYNAMODB_TABLE_NAME', 'pfc-ParkingSpots-table')
@@ -43,8 +43,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # DynamoDBから駐輪場データを取得
         parking_data = get_parking_data()
         
-        # Bedrockでチャット応答を生成
-        response_data = generate_bedrock_response(user_message, parking_data)
+        # フォールバック応答を使用（Bedrock設定後に修正予定）
+        response_data = get_fallback_response(user_message, parking_data)
         
         return create_response(200, response_data)
         
@@ -152,8 +152,8 @@ def generate_bedrock_response(user_message: str, parking_data: List[Dict[str, An
         suggestions = generate_suggestions(claude_response['searchType'])
         
         return {
+            'response': claude_response['message'],
             'type': claude_response['searchType'],
-            'message': claude_response['message'],
             'parkingLots': recommended_lots,
             'suggestions': suggestions,
             'totalFound': len(recommended_lots)
@@ -182,59 +182,173 @@ def generate_suggestions(search_type: str) -> List[str]:
 
 def get_fallback_response(message: str, parking_data: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
-    Bedrockが失敗した場合のフォールバック処理
+    自然言語処理による高度なチャット機能
     """
+    # メッセージを正規化
     lower_message = message.lower()
     
-    # キーワードベースの簡易マッチング
-    if '空' in message or '空き' in message or 'available' in lower_message:
+    # より自然な挨拶や基本的な質問への対応
+    greetings = ['こんにちは', 'こんばんは', 'おはよう', 'はじめまして', 'お疲れ']
+    if any(greeting in message for greeting in greetings):
+        return {
+            'response': 'こんにちは！池袋エリアの駐輪場案内アシスタントです😊 どちらの駐輪場をお探しですか？',
+            'type': 'greeting',
+            'parkingLots': parking_data[:3],
+            'suggestions': ['空いている場所を探す', '近い場所を探す', '安い場所を探す', '24時間営業']
+        }
+    
+    # ありがとうへの応答
+    thanks = ['ありがと', 'サンキュー', 'thanks', 'thank you']
+    if any(thank in lower_message for thank in thanks):
+        return {
+            'response': 'どういたしまして！他にもご質問があればお気軽にどうぞ🚲✨',
+            'type': 'thanks',
+            'parkingLots': [],
+            'suggestions': ['別の条件で探す', '営業時間を確認', '料金を比較', 'おすすめの駐輪場']
+        }
+    
+    # 場所・距離に関する質問
+    location_keywords = ['近', '最寄', '駅', '徒歩', '歩い', '距離', 'アクセス', '行き方']
+    if any(keyword in message for keyword in location_keywords):
+        nearest = sorted(parking_data, key=lambda x: x['distance'])[:3]
+        responses = [
+            f'池袋駅から一番近いのは{nearest[0]["name"]}です！徒歩{nearest[0]["walkTime"]}分です🚶‍♂️',
+            f'アクセス重視でしたら{nearest[0]["name"]}がおすすめです。{nearest[0]["distance"]}mの距離です📍',
+            f'近場の駐輪場をお探しですね！{len(nearest)}ヶ所ご紹介します🗺️'
+        ]
+        import random
+        return {
+            'response': random.choice(responses),
+            'type': 'nearest',
+            'parkingLots': nearest,
+            'suggestions': ['空き状況を確認', '料金を比較', '営業時間を確認', '他の条件で探す']
+        }
+    
+    # 空き状況に関する質問
+    availability_keywords = ['空', '空い', '利用可能', '使える', '止められ', '満車', '混雑', 'available']
+    if any(keyword in message for keyword in availability_keywords):
         available = sorted(
             [p for p in parking_data if p['capacity']['available'] > 10],
             key=lambda x: x['capacity']['available'],
             reverse=True
         )[:3]
         
+        responses = [
+            f'今なら{len(available)}ヶ所で空きがあります！一番空いているのは{available[0]["name"]}です🟢',
+            f'空き状況をチェックしました！{available[0]["name"]}が{available[0]["capacity"]["available"]}台空いてておすすめです🚲',
+            f'リアルタイムデータでは{len(available)}ヶ所に余裕があります✨'
+        ]
+        import random
         return {
+            'response': random.choice(responses),
             'type': 'available',
-            'message': f'現在、{len(available)}件の駐輪場に空きがあります！🚲',
             'parkingLots': available,
-            'suggestions': ['もっと空いている場所', '24時間営業', '料金が安い順']
+            'suggestions': ['もっと空いている場所', '24時間営業', '料金を確認', '近い場所']
         }
     
-    elif '近' in message or '最寄' in message or 'nearest' in lower_message:
-        nearest = sorted(parking_data, key=lambda x: x['distance'])[:3]
-        
-        return {
-            'type': 'nearest',
-            'message': '池袋駅から近い順に表示します',
-            'parkingLots': nearest,
-            'suggestions': ['空き状況を確認', '料金を比較', '営業時間を確認']
-        }
-    
-    elif '安' in message or 'cheap' in lower_message or '料金' in message:
+    # 料金に関する質問
+    price_keywords = ['安', '料金', '値段', '費用', 'コスト', '価格', 'お金', '円', 'cheap', 'cost']
+    if any(keyword in message for keyword in price_keywords):
         cheapest = sorted(parking_data, key=lambda x: x['fees']['daily'])[:3]
-        
+        responses = [
+            f'お財布に優しい駐輪場をご紹介！{cheapest[0]["name"]}が1日{cheapest[0]["fees"]["daily"]}円です💰',
+            f'料金重視でしたら{cheapest[0]["name"]}がおすすめです。1日{cheapest[0]["fees"]["daily"]}円でリーズナブルです💴',
+            f'コスパの良い駐輪場を{len(cheapest)}ヶ所ピックアップしました！'
+        ]
+        import random
         return {
+            'response': random.choice(responses),
             'type': 'cheapest',
-            'message': '料金が安い順に表示します（1日料金）',
             'parkingLots': cheapest,
-            'suggestions': ['一番近い場所', '空き状況を確認', '月極料金']
+            'suggestions': ['一番近い場所', '空き状況を確認', '月極料金', '24時間営業']
         }
     
-    elif '24時間' in message or '深夜' in message or '夜' in message:
+    # 時間・営業時間に関する質問
+    time_keywords = ['24時間', '深夜', '夜', '朝', '営業時間', '何時', 'いつまで', '時間', 'hours']
+    if any(keyword in message for keyword in time_keywords):
         all_day = [p for p in parking_data if '24時間' in p['openHours']]
-        
+        if '24時間' in message or '深夜' in message or '夜' in message:
+            responses = [
+                f'夜でも安心！24時間営業の駐輪場が{len(all_day)}ヶ所あります🌙',
+                f'深夜利用OK！{all_day[0]["name"]}など{len(all_day)}ヶ所が24時間対応です⭐',
+                f'いつでも利用できる駐輪場をご案内します🕐'
+            ]
+        else:
+            responses = [
+                f'営業時間をお調べしました！各駐輪場の営業時間は詳細でご確認ください🕐',
+                f'時間を気にせず使いたいなら24時間営業がおすすめです！',
+                f'営業時間は駐輪場によって異なります。詳細をチェックしてみてください📅'
+            ]
+        import random
         return {
+            'response': random.choice(responses),
             'type': '24hours',
-            'message': f'24時間営業の駐輪場が{len(all_day)}件見つかりました',
-            'parkingLots': all_day,
-            'suggestions': ['空いている場所', '駅から近い順', '料金を確認']
+            'parkingLots': all_day if all_day else parking_data[:3],
+            'suggestions': ['空いている場所', '駅から近い順', '料金を確認', '他の条件']
         }
     
-    # デフォルト応答
+    # 推奨・おすすめに関する質問
+    recommend_keywords = ['おすすめ', 'オススメ', '推奨', 'いい', '良い', 'ベスト', '人気', 'recommend']
+    if any(keyword in message for keyword in recommend_keywords):
+        # バランスの良い駐輪場を選出（距離、空き、料金を総合評価）
+        scored_parking = []
+        for p in parking_data:
+            distance_score = (400 - p['distance']) / 400 * 100  # 距離が近いほど高得点
+            availability_score = (p['capacity']['available'] / p['capacity']['total']) * 100  # 空きが多いほど高得点
+            price_score = (800 - p['fees']['daily']) / 800 * 100  # 料金が安いほど高得点
+            total_score = (distance_score + availability_score + price_score) / 3
+            scored_parking.append((p, total_score))
+        
+        best = sorted(scored_parking, key=lambda x: x[1], reverse=True)[:3]
+        best_parking = [p[0] for p in best]
+        
+        responses = [
+            f'総合的におすすめは{best_parking[0]["name"]}です！バランスが良くて使いやすいですよ👍',
+            f'いろんな条件を考慮すると{best_parking[0]["name"]}がイチオシです✨',
+            f'人気のバランス型駐輪場をご紹介！{len(best_parking)}ヶ所セレクトしました🏆'
+        ]
+        import random
+        return {
+            'response': random.choice(responses),
+            'type': 'recommend',
+            'parkingLots': best_parking,
+            'suggestions': ['条件別に探す', '空き状況を確認', '料金を比較', '営業時間を確認']
+        }
+    
+    # 具体的な駐輪場名が含まれている場合
+    parking_names = [p['name'] for p in parking_data]
+    mentioned_parking = [p for p in parking_data if any(name_part in message for name_part in p['name'].split())]
+    if mentioned_parking:
+        target = mentioned_parking[0]
+        occupancy = target['capacity']['available']
+        total = target['capacity']['total']
+        rate = int((total - occupancy) / total * 100)
+        
+        status_emoji = '🟢' if rate < 50 else '🟡' if rate < 80 else '🔴'
+        responses = [
+            f'{target["name"]}ですね！現在{occupancy}台空きがあります{status_emoji}',
+            f'{target["name"]}の状況をお調べしました。混雑率{rate}%です📊',
+            f'{target["name"]}は{target["address"]}にあり、1日{target["fees"]["daily"]}円です💼'
+        ]
+        import random
+        return {
+            'response': random.choice(responses),
+            'type': 'specific',
+            'parkingLots': [target],
+            'suggestions': ['他の駐輪場と比較', '詳細情報を確認', '営業時間', '料金プラン']
+        }
+    
+    # 質問の意図が不明な場合の親切な応答
+    responses = [
+        '申し訳ありません、どのような駐輪場をお探しでしょうか？🤔 もう少し詳しく教えていただけますか？',
+        'すみません、うまく理解できませんでした💦 「近い場所」「安い場所」「空いている場所」など、条件を教えてください！',
+        'どんな駐輪場をお探しですか？😊 場所、料金、営業時間など、ご希望をお聞かせください！',
+        'お探しの条件を教えてください！池袋エリアの駐輪場をご案内します🚲✨'
+    ]
+    import random
     return {
+        'response': random.choice(responses),
         'type': 'general',
-        'message': '池袋エリアの駐輪場をご案内します。どのような条件でお探しですか？',
         'parkingLots': parking_data[:3],
         'suggestions': ['空いている駐輪場', '一番近い駐輪場', '24時間営業', '料金が安い順']
     }
