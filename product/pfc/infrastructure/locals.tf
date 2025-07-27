@@ -14,10 +14,10 @@ locals {
     runtime = "python3.13"
     timeout = 30
     environment_variables = {
-      DYNAMODB_TABLE_NAME = local.dynamodb_table_name
-      ENVIRONMENT         = local.env.environment
+      DYNAMODB_TABLE_NAME   = local.dynamodb_table_name
+      ENVIRONMENT           = local.env.environment
       ENABLE_SELECTION_MODE = "true"
-      MAX_BEDROCK_TOKENS = "150"
+      MAX_BEDROCK_TOKENS    = "150"
     }
 
     # DynamoDB共通権限

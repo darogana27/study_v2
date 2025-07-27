@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PFC - 池袋駐輪場リアルタイム情報</title>
+    <title>PFC - 東京駐輪場リアルタイム情報</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -323,6 +323,55 @@
             font-size: 0.875rem;
         }
 
+        .area-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .area-selector label {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        .area-select {
+            padding: 0.75rem 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: border-color 0.2s ease;
+            background: white;
+        }
+
+        .area-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .search-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            align-self: flex-start;
+        }
+
+        .search-btn:hover {
+            background: linear-gradient(135deg, #5a67d8, #6b46c1);
+            transform: translateY(-1px);
+        }
+
+        .search-btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         @media (max-width: 768px) {
             .container {
                 grid-template-columns: 1fr;
@@ -401,7 +450,7 @@
             </div>
             <div class="status-indicator">
                 <span>●</span>
-                <span>システム稼働中</span>
+                <span>東京全域対応</span>
             </div>
         </div>
     </nav>
@@ -415,7 +464,7 @@
                 <div class="card-header">
                     <h2 class="card-title">
                         <span>🗺️</span>
-                        池袋エリア駐輪場マップ
+                        東京駐輪場マップ
                     </h2>
                 </div>
                 <div class="card-content">
@@ -425,6 +474,65 @@
                         <div class="legend-item">🟡 やや混雑</div>
                         <div class="legend-item">🔴 ほぼ満車</div>
                         <div class="legend-item">📍 クリックで詳細表示</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- エリア選択カード -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span>📍</span>
+                        エリア選択
+                    </h2>
+                </div>
+                <div class="card-content">
+                    <div class="area-selector">
+                        <label for="wardSelect">区・市を選択:</label>
+                        <select id="wardSelect" class="area-select">
+                            <option value="">エリアを選択してください</option>
+                            <optgroup label="主要駅周辺">
+                                <option value="shinjuku">🏢 新宿駅周辺</option>
+                                <option value="shibuya">🎌 渋谷駅周辺</option>
+                                <option value="ikebukuro">🛍️ 池袋駅周辺</option>
+                                <option value="tokyo">🏯 東京駅周辺</option>
+                                <option value="shinagawa">🚅 品川駅周辺</option>
+                                <option value="ueno">🌸 上野駅周辺</option>
+                            </optgroup>
+                            <optgroup label="23区">
+                                <option value="chiyoda">千代田区</option>
+                                <option value="chuo">中央区</option>
+                                <option value="minato">港区</option>
+                                <option value="shinjuku_ward">新宿区</option>
+                                <option value="bunkyo">文京区</option>
+                                <option value="taito">台東区</option>
+                                <option value="sumida">墨田区</option>
+                                <option value="koto">江東区</option>
+                                <option value="shinagawa_ward">品川区</option>
+                                <option value="meguro">目黒区</option>
+                                <option value="ota">大田区</option>
+                                <option value="setagaya">世田谷区</option>
+                                <option value="shibuya_ward">渋谷区</option>
+                                <option value="nakano">中野区</option>
+                                <option value="suginami">杉並区</option>
+                                <option value="toshima">豊島区</option>
+                                <option value="kita">北区</option>
+                                <option value="arakawa">荒川区</option>
+                                <option value="itabashi">板橋区</option>
+                                <option value="nerima">練馬区</option>
+                                <option value="adachi">足立区</option>
+                                <option value="katsushika">葛飾区</option>
+                                <option value="edogawa">江戸川区</option>
+                            </optgroup>
+                            <optgroup label="多摩地域">
+                                <option value="hachioji">八王子市</option>
+                                <option value="tachikawa">立川市</option>
+                                <option value="musashino">武蔵野市</option>
+                                <option value="mitaka">三鷹市</option>
+                                <option value="machida">町田市</option>
+                            </optgroup>
+                        </select>
+                        <button id="searchButton" class="search-btn">検索</button>
                     </div>
                 </div>
             </div>
@@ -475,7 +583,7 @@
         // Leaflet地図初期化
         function initMap() {
             try {
-                map = L.map('map').setView([35.7286, 139.7140], 16);
+                map = L.map('map').setView([35.6762, 139.6503], 11);
                 
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '© OpenStreetMap contributors'
@@ -548,9 +656,17 @@
             });
         }
 
-        async function loadParkingData() {
+        async function loadParkingData(area = null, ward = null) {
             try {
-                const response = await fetch(`${API_ENDPOINT}/parking-spots`);
+                let url = `${API_ENDPOINT}/parking-spots`;
+                if (area || ward) {
+                    const params = new URLSearchParams();
+                    if (area) params.append('area', area);
+                    if (ward) params.append('ward', ward);
+                    url += `?${params.toString()}`;
+                }
+                
+                const response = await fetch(url);
                 const data = await response.json();
                 
                 document.getElementById('loadingMessage').style.display = 'none';
@@ -625,6 +741,66 @@
             }
         }
 
+        // Area mapping for API requests
+        const areaMapping = {
+            'shinjuku': { area: 'shinjuku', ward: '新宿区' },
+            'shibuya': { area: 'shibuya', ward: '渋谷区' },
+            'ikebukuro': { area: 'ikebukuro', ward: '豊島区' },
+            'tokyo': { area: 'tokyo', ward: '千代田区' },
+            'shinagawa': { area: 'shinagawa', ward: '港区' },
+            'ueno': { area: 'ueno', ward: '台東区' },
+            'chiyoda': { area: 'chiyoda', ward: '千代田区' },
+            'chuo': { area: 'chuo', ward: '中央区' },
+            'minato': { area: 'minato', ward: '港区' },
+            'shinjuku_ward': { area: 'shinjuku', ward: '新宿区' },
+            'bunkyo': { area: 'bunkyo', ward: '文京区' },
+            'taito': { area: 'taito', ward: '台東区' },
+            'sumida': { area: 'sumida', ward: '墨田区' },
+            'koto': { area: 'koto', ward: '江東区' },
+            'shinagawa_ward': { area: 'shinagawa', ward: '品川区' },
+            'meguro': { area: 'meguro', ward: '目黒区' },
+            'ota': { area: 'ota', ward: '大田区' },
+            'setagaya': { area: 'setagaya', ward: '世田谷区' },
+            'shibuya_ward': { area: 'shibuya', ward: '渋谷区' },
+            'nakano': { area: 'nakano', ward: '中野区' },
+            'suginami': { area: 'suginami', ward: '杉並区' },
+            'toshima': { area: 'toshima', ward: '豊島区' },
+            'kita': { area: 'kita', ward: '北区' },
+            'arakawa': { area: 'arakawa', ward: '荒川区' },
+            'itabashi': { area: 'itabashi', ward: '板橋区' },
+            'nerima': { area: 'nerima', ward: '練馬区' },
+            'adachi': { area: 'adachi', ward: '足立区' },
+            'katsushika': { area: 'katsushika', ward: '葛飾区' },
+            'edogawa': { area: 'edogawa', ward: '江戸川区' },
+            'hachioji': { area: 'hachioji', ward: '八王子市' },
+            'tachikawa': { area: 'tachikawa', ward: '立川市' },
+            'musashino': { area: 'musashino', ward: '武蔵野市' },
+            'mitaka': { area: 'mitaka', ward: '三鷹市' },
+            'machida': { area: 'machida', ward: '町田市' }
+        };
+
+        async function handleAreaSearch() {
+            const wardSelect = document.getElementById('wardSelect');
+            const selectedArea = wardSelect.value;
+            
+            if (!selectedArea) {
+                alert('エリアを選択してください');
+                return;
+            }
+            
+            const areaData = areaMapping[selectedArea];
+            if (!areaData) {
+                alert('無効なエリアが選択されました');
+                return;
+            }
+            
+            document.getElementById('loadingMessage').style.display = 'block';
+            document.getElementById('loadingMessage').textContent = `${areaData.ward}のデータを読み込み中...`;
+            document.getElementById('parkingList').style.display = 'none';
+            
+            await loadParkingData(areaData.area, areaData.ward);
+        }
+
         async function sendChatMessage() {
             const input = document.getElementById('chatInput');
             const message = input.value.trim();
@@ -656,7 +832,10 @@
                 const response = await fetch(`${API_ENDPOINT}/chat`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: message })
+                    body: JSON.stringify({ 
+                        message: message,
+                        isSelectionMode: false
+                    })
                 });
                 
                 const data = await response.json();
@@ -664,7 +843,7 @@
                 const lastMessage = chatMessages.lastElementChild;
                 lastMessage.innerHTML = `
                     <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 0.75rem 1rem; border-radius: 1rem; display: inline-block; max-width: 80%; font-size: 0.875rem; color: #2d3748;">
-                        ${data.response || 'エラーが発生しました'}
+                        ${data.response || data.message || 'エラーが発生しました'}
                     </div>
                 `;
                 
@@ -686,14 +865,17 @@
                 sendChatMessage();
             }
         });
+        document.getElementById('searchButton').addEventListener('click', handleAreaSearch);
 
         // 初期化
         document.addEventListener('DOMContentLoaded', function() {
             if (typeof L !== 'undefined') {
                 if (initMap()) {
                     setTimeout(() => {
-                        loadParkingData();
-                        setInterval(loadParkingData, 600000);
+                        // 初期表示は池袋エリアのデータを表示
+                        loadParkingData('ikebukuro', '豊島区');
+                        // 10分ごとに更新
+                        setInterval(() => loadParkingData('ikebukuro', '豊島区'), 600000);
                     }, 500);
                 }
             } else {
@@ -702,8 +884,10 @@
                         clearInterval(checkLeaflet);
                         if (initMap()) {
                             setTimeout(() => {
-                                loadParkingData();
-                                setInterval(loadParkingData, 600000);
+                                // 初期表示は池袋エリアのデータを表示
+                                loadParkingData('ikebukuro', '豊島区');
+                                // 10分ごとに更新
+                                setInterval(() => loadParkingData('ikebukuro', '豊島区'), 600000);
                             }, 500);
                         }
                     }
