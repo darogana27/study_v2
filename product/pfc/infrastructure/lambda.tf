@@ -23,7 +23,7 @@ module "lambda_functions" {
           actions = [
             "bedrock:InvokeModel"
           ]
-          resources = ["arn:aws:bedrock:ap-northeast-1:*:model/anthropic.claude-3-sonnet*"]
+          resources = ["arn:aws:bedrock:ap-northeast-1:*:model/anthropic.claude-3-haiku*"]
         }
       ]
     }
@@ -32,15 +32,27 @@ module "lambda_functions" {
       filename    = "../src/lambda/builds/parking-data-collector.zip"
       handler     = "parking-data-collector.lambda_handler"
       runtime     = local.lambda_common.runtime
-      memory_size = 128
-      timeout     = 60
-      description = "PFC Parking Data Collector Function"
+      memory_size = 512 # 東京全土対応で増強
+      timeout     = 900 # 15分（最大）
+      description = "PFC Parking Data Collector Function - Tokyo Wide"
 
-      environment_variables = local.lambda_common.environment_variables
+      environment_variables = merge(local.lambda_common.environment_variables, {
+        ENABLE_TOKYO_WIDE  = "true"
+        MAX_PARALLEL_WARDS = "5"
+        BATCH_SIZE         = "100"
+        ENABLE_GEOHASH     = "true"
+      })
 
       additional_iam_policies = [
         local.lambda_common.dynamodb_permissions,
-        local.lambda_common.cloudwatch_permissions
+        local.lambda_common.cloudwatch_permissions,
+        {
+          effect = "Allow"
+          actions = [
+            "states:StartExecution" # Step Functions実行権限
+          ]
+          resources = ["arn:aws:states:ap-northeast-1:*:stateMachine:pfc-data-collection-*"]
+        }
       ]
     }
 

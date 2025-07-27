@@ -1,0 +1,17 @@
+# PFC Lambda Functions Dependencies
+# 東京全域対応のLambda関数で使用する外部ライブラリ
+
+# AWS SDK (通常はLambda環境に含まれているが明示的に記載)
+boto3>=1.28.0
+
+# 地理計算ライブラリ（GeoHash対応）
+geohash2>=1.1
+
+# HTTPリクエスト（外部API呼び出し用）
+requests>=2.31.0
+
+# JSON処理強化（必要に応じて）
+ujson>=5.8.0
+
+# 日時処理
+python-dateutil>=2.8.2

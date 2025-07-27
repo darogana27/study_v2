@@ -2,4 +2,4 @@
 *.tfstate*
 *.tfstate.backup
 .vscode/*
-.claude\settings.local.json
+*claude*
