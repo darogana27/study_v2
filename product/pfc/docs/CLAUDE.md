@@ -155,3 +155,38 @@ curl -I https://d2ubjdigebrmfd.cloudfront.net
 - **メモリ使用量**: 最適化により30-40%削減見込み
 - **権限設定**: 未使用権限あり（Step Functions等）
 - **DynamoDBアクセス**: バッチ処理とGSI活用に改善余地あり
+
+## リソース管理スクリプト
+
+### 🛑 リソース停止（コスト節約）
+```bash
+cd infrastructure
+./stop-resources.sh
+```
+**停止内容:**
+- EventBridge Scheduler無効化（データ収集停止）
+- Lambda関数無効化（DISABLED=true環境変数設定）
+- CloudFront Distribution無効化（15-20分要）
+- API Gateway ステージ削除
+- DynamoDB自動バックアップ作成
+
+**コスト削減効果:** 月額$0.80 → 約$0.25（DynamoDBストレージのみ）
+
+### 🚀 リソース起動（サービス再開）
+```bash
+cd infrastructure  
+./start-resources.sh
+```
+**起動内容:**
+- Lambda関数有効化（環境変数復元）
+- API Gateway ステージ再作成
+- CloudFront Distribution有効化（15-20分要）
+- EventBridge Scheduler有効化（10分間隔）
+- 初回データ収集実行
+
+**注意:** CloudFrontの有効化/無効化は15-20分かかります
+
+### 使用シーン
+- **開発中断時**: `./stop-resources.sh` でコスト節約
+- **デモ/開発再開時**: `./start-resources.sh` で即座に復旧
+- **月末コスト調整**: 不要な期間は停止状態で維持
