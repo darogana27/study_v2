@@ -1,0 +1,1 @@
+{"statusCode": 500, "body": "{\"error\": \"Failed to collect parking data\", \"message\": \"An error occurred (ValidationException) when calling the BatchWriteItem operation: The provided key element does not match the schema\", \"timestamp\": \"2025-07-28T14:42:28.662477\"}"}
