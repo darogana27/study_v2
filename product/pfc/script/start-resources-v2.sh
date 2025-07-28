@@ -7,11 +7,18 @@ set -e
 
 echo "🚀 PFC リソース起動を開始します..."
 
-# 現在のディレクトリ確認
-if [[ ! -f "terraform.tf" ]]; then
-    echo "❌ Terraformディレクトリで実行してください"
+# 現在のディレクトリ確認とinfrastructureディレクトリへの移動
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+INFRASTRUCTURE_DIR="$PROJECT_ROOT/infrastructure"
+
+if [[ ! -f "$INFRASTRUCTURE_DIR/terraform.tf" ]]; then
+    echo "❌ infrastructure/terraform.tf が見つかりません"
+    echo "プロジェクトルートから実行してください"
     exit 1
 fi
+
+echo "📁 作業ディレクトリ: $INFRASTRUCTURE_DIR"
 
 # タグ設定
 PRODUCT_TAG="pfc"
@@ -76,7 +83,25 @@ if [[ -n "$API_ARNS" ]]; then
         fi
     done
 else
-    echo "    ⚠️  PFC API Gateway not found"
+    # フォールバック: 直接API名で検索
+    echo "    🔄 フォールバック: 直接API検索中..."
+    API_ID=$(aws apigatewayv2 get-apis --query "Items[?contains(Name,'pfc')].ApiId" --output text --region $REGION 2>/dev/null || echo "")
+    if [[ -n "$API_ID" && "$API_ID" != "None" ]]; then
+        echo "  - API $API_ID のステージ dev を確認中..."
+        STAGE_EXISTS=$(aws apigatewayv2 get-stage --api-id "$API_ID" --stage-name "dev" --region $REGION 2>/dev/null && echo "exists" || echo "not_exists")
+        
+        if [[ "$STAGE_EXISTS" == "not_exists" ]]; then
+            aws apigatewayv2 create-stage \
+                --api-id "$API_ID" \
+                --stage-name "dev" \
+                --auto-deploy \
+                --region $REGION 2>/dev/null && echo "    ✅ ステージ再作成完了" || echo "    ⚠️  ステージ作成失敗"
+        else
+            echo "    ℹ️  ステージは既に存在しています"
+        fi
+    else
+        echo "    ⚠️  PFC API Gateway not found"
+    fi
 fi
 
 # 3. CloudFront Distribution を有効化（タグベース検出）
@@ -103,17 +128,21 @@ if [[ -n "$CLOUDFRONT_ARNS" ]]; then
             --region us-east-1 2>/dev/null || echo "")
         
         if [[ "$CURRENT_STATUS" == "False" ]]; then
-            # Distribution設定を取得
-            aws cloudfront get-distribution-config \
+            # Distribution設定を取得してETagを保存
+            ETAG=$(aws cloudfront get-distribution-config \
                 --id "$DISTRIBUTION_ID" \
-                --region us-east-1 > /tmp/distribution-config.json 2>/dev/null || continue
+                --region us-east-1 \
+                --query "ETag" \
+                --output text 2>/dev/null || echo "")
             
-            if [[ -f "/tmp/distribution-config.json" ]]; then
-                # ETagを取得
-                ETAG=$(jq -r '.ETag' /tmp/distribution-config.json)
-                
-                # Enabledをtrueに変更
-                jq '.DistributionConfig.Enabled = true' /tmp/distribution-config.json > /tmp/distribution-enabled.json
+            # Distribution設定をJSONファイルに保存
+            CONFIG_JSON=$(aws cloudfront get-distribution-config \
+                --id "$DISTRIBUTION_ID" \
+                --region us-east-1 \
+                --query "DistributionConfig" 2>/dev/null || echo "")
+            
+            if [[ -n "$ETAG" && -n "$CONFIG_JSON" ]]; then
+                echo "$CONFIG_JSON" | jq '.Enabled = true' > /tmp/distribution-enabled.json
                 
                 # 有効化を実行
                 aws cloudfront update-distribution \
@@ -123,7 +152,9 @@ if [[ -n "$CLOUDFRONT_ARNS" ]]; then
                     --region us-east-1 2>/dev/null && echo "    ✅ CloudFront有効化開始（完了まで15-20分）" || echo "    ⚠️  CloudFront有効化失敗"
                 
                 # 一時ファイル削除
-                rm -f /tmp/distribution-config.json /tmp/distribution-enabled.json
+                rm -f /tmp/distribution-enabled.json
+            else
+                echo "    ⚠️  CloudFront設定の取得に失敗"
             fi
         else
             echo "    ℹ️  Distribution $DISTRIBUTION_ID は既に有効です"
@@ -174,7 +205,42 @@ if [[ -n "$SCHEDULER_ARNS" ]]; then
         fi
     done
 else
-    echo "    ⚠️  PFC Scheduler not found"
+    # フォールバック: 直接Scheduler名で検索
+    echo "    🔄 フォールバック: 直接Scheduler検索中..."
+    SCHEDULES=$(aws scheduler list-schedules --group-name "pfc-scheduler-group" --region $REGION --query "Schedules[?contains(Name,'pfc')].{Name:Name,State:State}" --output text 2>/dev/null || echo "")
+    
+    if [[ -n "$SCHEDULES" ]]; then
+        echo "$SCHEDULES" | while read -r name state; do
+            if [[ -n "$name" ]]; then
+                echo "  - $name を有効化中..."
+                
+                # 現在の設定を取得
+                CURRENT_CONFIG=$(aws scheduler get-schedule \
+                    --name "$name" \
+                    --group-name "pfc-scheduler-group" \
+                    --region $REGION 2>/dev/null || echo "")
+                
+                if [[ -n "$CURRENT_CONFIG" ]]; then
+                    # 必要な設定を抽出
+                    SCHEDULE_EXPR=$(echo "$CURRENT_CONFIG" | jq -r '.ScheduleExpression')
+                    FLEXIBLE_TIME=$(echo "$CURRENT_CONFIG" | jq -r '.FlexibleTimeWindow')
+                    TARGET_CONFIG=$(echo "$CURRENT_CONFIG" | jq -r '.Target')
+                    
+                    # スケジュールを有効化
+                    aws scheduler update-schedule \
+                        --name "$name" \
+                        --group-name "pfc-scheduler-group" \
+                        --state "ENABLED" \
+                        --schedule-expression "$SCHEDULE_EXPR" \
+                        --flexible-time-window "$FLEXIBLE_TIME" \
+                        --target "$TARGET_CONFIG" \
+                        --region $REGION 2>/dev/null && echo "    ✅ $name 有効化完了" || echo "    ⚠️  $name 有効化失敗"
+                fi
+            fi
+        done
+    else
+        echo "    ⚠️  PFC Scheduler not found"
+    fi
 fi
 
 # 5. 初回データ収集を実行（データ収集Lambda関数のみ）
