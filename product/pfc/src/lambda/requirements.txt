@@ -10,6 +10,9 @@ geohash2>=1.1
 # HTTPリクエスト（外部API呼び出し用）
 requests>=2.31.0
 
+# 非同期HTTPリクエスト（東京全域データ収集用）
+aiohttp>=3.8.0
+
 # JSON処理強化（必要に応じて）
 ujson>=5.8.0
 

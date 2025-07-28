@@ -7,7 +7,7 @@ module "lambda_functions" {
       filename    = "../src/lambda/builds/lambda_function.zip"
       handler     = "park-finder-chat.lambda_handler"
       runtime     = local.lambda_common.runtime
-      memory_size = 256
+      memory_size = 128
       timeout     = local.lambda_common.timeout
       description = "PFC Park Finder Chat Function"
 
@@ -45,14 +45,7 @@ module "lambda_functions" {
 
       additional_iam_policies = [
         local.lambda_common.dynamodb_permissions,
-        local.lambda_common.cloudwatch_permissions,
-        {
-          effect = "Allow"
-          actions = [
-            "states:StartExecution" # Step Functions実行権限
-          ]
-          resources = ["arn:aws:states:ap-northeast-1:*:stateMachine:pfc-data-collection-*"]
-        }
+        local.lambda_common.cloudwatch_permissions
       ]
     }
 
