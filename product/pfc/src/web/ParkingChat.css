@@ -2,8 +2,65 @@
 
 .parking-chat-container {
   display: flex;
+  flex-direction: column;
   height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* エリア選択ヘッダー */
+.area-selector-header {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  color: white;
+  padding: 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.area-selector-title h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.area-selector-title p {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.area-buttons {
+  margin-top: 1rem;
+}
+
+.area-select-dropdown {
+  width: 100%;
+  max-width: 400px;
+  padding: 0.75rem 1rem;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.9);
+  font-size: 0.9rem;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.area-select-dropdown:focus {
+  outline: none;
+  border-color: rgba(255,255,255,0.6);
+  background: white;
+}
+
+.area-select-dropdown:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* メインコンテンツエリア */
+.parking-chat-container > .chat-section {
+  flex: 1;
+  display: flex;
 }
 
 .chat-section {

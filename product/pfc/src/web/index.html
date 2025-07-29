@@ -3,11 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PFC - 東京駐輪場リアルタイム情報</title>
+    <title>PFC - 東京駐輪場検索</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -16,406 +13,690 @@
         }
 
         body {
-            font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: #2d3748;
-            line-height: 1.6;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            background: #f5f5f5;
         }
 
-        .navbar {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 1rem 0;
-            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
-            position: sticky;
-            top: 0;
+        /* ヘッダー */
+        .header {
+            height: 60px;
+            background: #2c3e50;
+            color: white;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             z-index: 1000;
         }
 
-        .navbar-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
         .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-weight: 700;
-            font-size: 1.5rem;
-            color: #4a5568;
+            font-size: 24px;
+            font-weight: bold;
         }
 
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            border-radius: 8px;
+        .header-subtitle {
+            margin-left: 20px;
+            opacity: 0.8;
+            font-size: 14px;
+        }
+
+        /* メインコンテナ */
+        .main-container {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
+            height: calc(100vh - 60px);
+        }
+
+        /* 左サイドバー（エリア選択タブ） */
+        .left-sidebar {
+            width: 300px;
+            background: white;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background: #34495e;
             color: white;
         }
 
-        .status-indicator {
+        .sidebar-title {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        .sidebar-subtitle {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .area-tabs {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .tab-group {
+            border-bottom: 1px solid #eee;
+        }
+
+        .tab-group-header {
+            background: #ecf0f1;
+            padding: 12px 20px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 14px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .tab-group-header:hover {
+            background: #d5dbdb;
+        }
+
+        .tab-items {
+            display: none;
+        }
+
+        .tab-items.active {
+            display: block;
+        }
+
+        .tab-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 1px solid #f8f9fa;
+            transition: all 0.2s ease;
+        }
+
+        .tab-item:hover {
+            background: #f8f9fa;
+            padding-left: 25px;
+        }
+
+        .tab-item.selected {
+            background: #3498db;
+            color: white;
+        }
+
+        .tab-item.selected:hover {
+            background: #2980b9;
+        }
+
+        /* 中央マップエリア */
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        /* マーカーのカーソルポインタ */
+        .leaflet-marker-icon {
+            cursor: pointer !important;
+        }
+
+        .main-container.chat-collapsed .map-container {
+            width: 100%;
+            margin-right: 0;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .map-controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .current-area {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .area-info {
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+
+        /* 右サイドバー（チャット） */
+        .right-sidebar {
+            width: 400px;
+            background: white;
+            border-left: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            height: calc(100vh - 60px);
+        }
+
+        .sidebar-toggle {
+            position: absolute;
+            top: 50%;
+            left: -15px;
+            transform: translateY(-50%);
+            background: #27ae60;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 60px;
+            border-radius: 15px 0 0 15px;
+            cursor: pointer;
+            font-size: 16px;
+            z-index: 1001;
+            transition: all 0.3s ease-in-out;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            background: #f0fff4;
-            padding: 0.5rem 1rem;
-            border-radius: 50px;
-            border: 1px solid #9ae6b4;
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: #38a169;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            padding: 0;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-            display: grid;
-            grid-template-columns: 1fr 400px;
-            gap: 2rem;
-            min-height: calc(100vh - 100px);
+        .sidebar-toggle:hover {
+            background: #219a52;
+            transform: translateY(-50%) scale(1.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
         }
 
-        .main-content {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
+        .right-sidebar {
+            transition: width 0.3s ease-in-out, background 0.3s ease-in-out, border 0.3s ease-in-out;
         }
 
-        .sidebar {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
+        .right-sidebar.collapsed {
+            width: 0;
+            min-width: 0;
+            overflow: visible;
+            background: transparent;
+            border: none;
         }
 
-        .card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            overflow: hidden;
+        .right-sidebar.collapsed .sidebar-toggle {
+            right: 20px;
+            bottom: 30px;
+            left: auto;
+            top: auto;
+            transform: none;
+            border-radius: 25px;
+            width: auto;
+            min-width: 120px;
+            height: 50px;
+            background: #3498db;
+            animation: bounce 3s infinite;
+            position: fixed;
+            z-index: 9999;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 0 15px;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .right-sidebar.collapsed .sidebar-toggle:hover {
+            background: #2980b9;
+            transform: translateY(-5px) scale(1.05);
+        }
+
+        .right-sidebar.collapsed .chat-header,
+        .right-sidebar.collapsed .chat-tabs,
+        .right-sidebar.collapsed .chat-messages,
+        .right-sidebar.collapsed .chat-input {
+            display: none;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(52, 152, 219, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(52, 152, 219, 0);
+            }
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-10px);
+            }
+            60% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .sidebar-toggle-icon {
             transition: all 0.3s ease;
         }
 
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-        }
-
-        .card-header {
-            padding: 1.5rem 2rem;
-            border-bottom: 1px solid #e2e8f0;
-            background: linear-gradient(135deg, #f7fafc, #edf2f7);
-        }
-
-        .card-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #2d3748;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .card-content {
-            padding: 2rem;
-        }
-
-        .map-container {
-            height: 400px;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-        }
-
-        .map-legend {
-            display: flex;
-            justify-content: center;
-            gap: 1.5rem;
-            margin-top: 1rem;
-            font-size: 0.875rem;
-            color: #4a5568;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .parking-list {
-            max-height: 600px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .parking-item {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 1.5rem;
-            transition: all 0.2s ease;
-            cursor: pointer;
-        }
-
-        .parking-item:hover {
-            background: #edf2f7;
-            border-color: #cbd5e0;
-            transform: translateY(-1px);
-        }
-
-        .parking-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 1rem;
-        }
-
-        .parking-name {
-            font-weight: 600;
-            font-size: 1.1rem;
-            color: #2d3748;
-            margin-bottom: 0.25rem;
-        }
-
-        .parking-address {
-            font-size: 0.875rem;
-            color: #718096;
-        }
-
-        .availability-badge {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 0.25rem;
-        }
-
-        .availability-status {
-            font-size: 1.5rem;
-        }
-
-        .availability-text {
-            font-size: 0.875rem;
-            font-weight: 600;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            white-space: nowrap;
-        }
-
-        .status-available {
-            background: #f0fff4;
-            color: #38a169;
-        }
-
-        .status-busy {
-            background: #fffbeb;
-            color: #d69e2e;
-        }
-
-        .status-full {
-            background: #fed7d7;
-            color: #e53e3e;
-        }
-
-        .parking-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid #e2e8f0;
-        }
-
-        .detail-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.875rem;
-            color: #4a5568;
-        }
-
-        .detail-icon {
-            font-size: 1rem;
-            width: 20px;
-            text-align: center;
-        }
-
-        .free-badge {
-            background: linear-gradient(135deg, #48bb78, #38a169);
+        .chat-header {
+            padding: 15px 20px 10px 20px;
+            background: #27ae60;
             color: white;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
-            margin-left: 0.5rem;
+            position: relative;
         }
 
-        .chat-container {
-            height: 300px;
+        .chat-title {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        .chat-subtitle {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        /* チャットタブ */
+        .chat-tabs {
+            background: #ecf0f1;
+            border-bottom: 1px solid #bdc3c7;
             display: flex;
-            flex-direction: column;
+            overflow-x: auto;
+            padding: 0 20px;
+        }
+
+        .chat-tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            margin-right: 5px;
+            font-size: 12px;
+            background: #bdc3c7;
+            color: #2c3e50;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s ease;
+        }
+
+        .chat-tab.active {
+            background: white;
+            color: #27ae60;
+            font-weight: 600;
+        }
+
+        .chat-tab:hover {
+            background: #d5dbdb;
+        }
+
+        .chat-tab.active:hover {
+            background: white;
+        }
+
+        .tab-close {
+            background: rgba(231, 76, 60, 0.1);
+            border: 1px solid rgba(231, 76, 60, 0.3);
+            color: #e74c3c;
+            cursor: pointer;
+            font-weight: bold;
+            padding: 0;
+            margin-left: 8px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            transition: all 0.2s ease;
+            opacity: 0.7;
+        }
+
+        .tab-close:hover {
+            background: #e74c3c;
+            color: white;
+            opacity: 1;
+            transform: scale(1.1);
+            box-shadow: 0 2px 4px rgba(231, 76, 60, 0.3);
+        }
+
+        .chat-tab:hover .tab-close {
+            opacity: 1;
+        }
+
+        /* タブ削除アニメーション */
+        .tab-removing {
+            animation: tabSlideOut 0.3s ease-out forwards;
+        }
+
+        @keyframes tabSlideOut {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+                max-width: 200px;
+            }
+            to {
+                opacity: 0;
+                transform: translateX(-20px);
+                max-width: 0;
+                padding: 0;
+                margin: 0;
+            }
+        }
+
+        .new-chat-tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            color: #27ae60;
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            margin-left: auto;
+        }
+
+        .new-chat-tab:hover {
+            background: #d5dbdb;
+            border-radius: 8px;
         }
 
         .chat-messages {
             flex: 1;
+            padding: 20px;
             overflow-y: auto;
-            padding: 1rem;
-            background: #f8fafc;
-            border-radius: 8px;
-            margin-bottom: 1rem;
+            background: #f8f9fa;
         }
 
-        .chat-input-container {
-            display: flex;
-            gap: 0.75rem;
+        .message {
+            margin-bottom: 15px;
+            animation: fadeInUp 0.3s ease;
+        }
+
+        .message.bot {
+            text-align: left;
+        }
+
+        .message.user {
+            text-align: right;
+        }
+
+        .message-content {
+            display: inline-block;
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .message.bot .message-content {
+            background: white;
+            color: #2c3e50;
+        }
+
+        .message.user .message-content {
+            background: #3498db;
+            color: white;
         }
 
         .chat-input {
-            flex: 1;
-            padding: 0.75rem 1rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            transition: border-color 0.2s ease;
-        }
-
-        .chat-input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .chat-button {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .chat-button:hover {
-            background: linear-gradient(135deg, #5a67d8, #6b46c1);
-            transform: translateY(-1px);
-        }
-
-        .loading-message {
-            text-align: center;
-            padding: 2rem;
-            color: #718096;
-            font-size: 0.875rem;
-        }
-
-        .area-selector {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .area-selector label {
-            font-weight: 600;
-            color: #2d3748;
-            margin-bottom: 0.5rem;
-        }
-
-        .area-select {
-            padding: 0.75rem 1rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            transition: border-color 0.2s ease;
+            padding: 20px;
+            border-top: 1px solid #ddd;
             background: white;
         }
 
-        .area-select:focus {
-            outline: none;
-            border-color: #667eea;
+        .input-container {
+            display: flex;
+            gap: 10px;
         }
 
-        .search-btn {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+        .message-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            outline: none;
+            font-size: 14px;
+        }
+
+        .message-input:focus {
+            border-color: #3498db;
+        }
+
+        .send-button {
+            padding: 12px 20px;
+            background: #3498db;
             color: white;
             border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 600;
+            border-radius: 20px;
             cursor: pointer;
-            transition: all 0.2s ease;
-            align-self: flex-start;
+            font-weight: 600;
         }
 
-        .search-btn:hover {
-            background: linear-gradient(135deg, #5a67d8, #6b46c1);
+        .send-button:hover {
+            background: #2980b9;
+        }
+
+        /* 選択肢ボタン */
+        .chat-options {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .option-button {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 20px;
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+            font-size: 14px;
+            color: #495057;
+        }
+
+        .option-button:hover {
+            background: #e9ecef;
+            border-color: #3498db;
             transform: translateY(-1px);
         }
 
-        .search-btn:disabled {
-            background: #cbd5e0;
-            cursor: not-allowed;
-            transform: none;
+        .option-button.selected {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
         }
 
-        @media (max-width: 768px) {
-            .container {
-                grid-template-columns: 1fr;
-                padding: 1rem;
-                gap: 1rem;
+        /* 目的地入力フィールド */
+        .destination-input {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            border-radius: 20px;
+            outline: none;
+            width: 100%;
+            font-size: 14px;
+        }
+
+        .destination-input:focus {
+            border-color: #3498db;
+        }
+
+        .confirm-button {
+            margin-top: 10px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .confirm-button:hover {
+            background: #219a52;
+        }
+
+        /* 駐輪場リスト（チャット内） */
+        .parking-list {
+            margin-top: 15px;
+        }
+
+        .parking-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .parking-card:hover {
+            border-color: #3498db;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.15);
+        }
+
+        .parking-card:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(52, 152, 219, 0.2);
+        }
+
+        .parking-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .parking-info {
+            font-size: 12px;
+            color: #7f8c8d;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .priority-tag {
+            display: inline-block;
+            background: #e74c3c;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 5px;
+        }
+
+        .priority-tag.price {
+            background: #f39c12;
+        }
+
+        .priority-tag.availability {
+            background: #27ae60;
+        }
+
+        .priority-tag.distance {
+            background: #3498db;
+        }
+
+        /* 左下固定広告 */
+        .bottom-left-ad {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 250px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            overflow: hidden;
+            z-index: 1000;
+            animation: slideInLeft 0.5s ease-out;
+        }
+
+        .ad-close {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+        }
+
+        .ad-close:hover {
+            background: rgba(0,0,0,0.7);
+        }
+
+        .ad-content-small {
+            display: flex;
+            padding: 10px;
+            align-items: center;
+        }
+
+        .small-ad-image {
+            width: 60px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+
+        .small-ad-text {
+            flex: 1;
+        }
+
+        .small-ad-text h5 {
+            margin: 0 0 5px 0;
+            font-size: 12px;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .small-ad-text p {
+            margin: 0 0 8px 0;
+            font-size: 10px;
+            color: #7f8c8d;
+            line-height: 1.3;
+        }
+
+        .small-ad-button {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .small-ad-button:hover {
+            background: #c0392b;
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-100px);
             }
-
-            .navbar-content {
-                padding: 0 1rem;
-            }
-
-            .card-content {
-                padding: 1.5rem;
-            }
-
-            .parking-details {
-                grid-template-columns: 1fr;
+            to {
+                opacity: 1;
+                transform: translateX(0);
             }
         }
 
-        /* Custom scrollbar */
-        .parking-list::-webkit-scrollbar,
-        .chat-messages::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .parking-list::-webkit-scrollbar-track,
-        .chat-messages::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 3px;
-        }
-
-        .parking-list::-webkit-scrollbar-thumb,
-        .chat-messages::-webkit-scrollbar-thumb {
-            background: #cbd5e0;
-            border-radius: 3px;
-        }
-
-        .parking-list::-webkit-scrollbar-thumb:hover,
-        .chat-messages::-webkit-scrollbar-thumb:hover {
-            background: #a0aec0;
-        }
-
-        /* Animation */
+        /* アニメーション */
         @keyframes fadeInUp {
             from {
                 opacity: 0;
@@ -427,475 +708,1369 @@
             }
         }
 
-        .card {
-            animation: fadeInUp 0.6s ease-out;
+        /* レスポンシブ */
+        @media (max-width: 1024px) {
+            .left-sidebar {
+                width: 250px;
+            }
+            .right-sidebar {
+                width: 350px;
+            }
         }
 
-        .card:nth-child(2) {
-            animation-delay: 0.1s;
-        }
-
-        .card:nth-child(3) {
-            animation-delay: 0.2s;
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .left-sidebar,
+            .right-sidebar {
+                width: 100%;
+                height: 200px;
+            }
+            
+            .map-container {
+                flex: 1;
+                min-height: 300px;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- ナビゲーションバー -->
-    <nav class="navbar">
-        <div class="navbar-content">
-            <div class="logo">
-                <div class="logo-icon">🚲</div>
-                <span>PFC</span>
+    <!-- ヘッダー -->
+    <div class="header">
+        <div class="logo">🚲 PFC</div>
+        <div class="header-subtitle">東京駐輪場検索システム</div>
+    </div>
+
+    <!-- メインコンテナ -->
+    <div class="main-container chat-collapsed">
+        <!-- 左サイドバー（エリア選択） -->
+        <div class="left-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">📍 エリア選択</div>
+                <div class="sidebar-subtitle">地域を選択してください</div>
             </div>
-            <div class="status-indicator">
-                <span>●</span>
-                <span>東京全域対応</span>
+            
+            <div class="area-tabs">
+                <!-- 主要駅周辺 -->
+                <div class="tab-group">
+                    <div class="tab-group-header" onclick="toggleTabGroup(this)">
+                        🚉 主要駅周辺
+                    </div>
+                    <div class="tab-items">
+                        <div class="tab-item" data-area="shinjuku">🏢 新宿駅周辺</div>
+                        <div class="tab-item" data-area="shibuya">🎌 渋谷駅周辺</div>
+                        <div class="tab-item" data-area="ikebukuro">🛍️ 池袋駅周辺</div>
+                        <div class="tab-item" data-area="tokyo">🏯 東京駅周辺</div>
+                        <div class="tab-item" data-area="shinagawa">🚅 品川駅周辺</div>
+                        <div class="tab-item" data-area="ueno">🌸 上野駅周辺</div>
+                    </div>
+                </div>
+
+                <!-- 23区 -->
+                <div class="tab-group">
+                    <div class="tab-group-header" onclick="toggleTabGroup(this)">
+                        🏙️ 東京23区
+                    </div>
+                    <div class="tab-items">
+                        <div class="tab-item" data-area="chiyoda">千代田区</div>
+                        <div class="tab-item" data-area="chuo">中央区</div>
+                        <div class="tab-item" data-area="minato">港区</div>
+                        <div class="tab-item" data-area="shinjuku_ward">新宿区</div>
+                        <div class="tab-item" data-area="bunkyo">文京区</div>
+                        <div class="tab-item" data-area="taito">台東区</div>
+                        <div class="tab-item" data-area="sumida">墨田区</div>
+                        <div class="tab-item" data-area="koto">江東区</div>
+                        <div class="tab-item" data-area="shinagawa_ward">品川区</div>
+                        <div class="tab-item" data-area="meguro">目黒区</div>
+                        <div class="tab-item" data-area="ota">大田区</div>
+                        <div class="tab-item" data-area="setagaya">世田谷区</div>
+                        <div class="tab-item" data-area="shibuya_ward">渋谷区</div>
+                        <div class="tab-item" data-area="nakano">中野区</div>
+                        <div class="tab-item" data-area="suginami">杉並区</div>
+                        <div class="tab-item" data-area="toshima">豊島区</div>
+                        <div class="tab-item" data-area="kita">北区</div>
+                        <div class="tab-item" data-area="arakawa">荒川区</div>
+                        <div class="tab-item" data-area="itabashi">板橋区</div>
+                        <div class="tab-item" data-area="nerima">練馬区</div>
+                        <div class="tab-item" data-area="adachi">足立区</div>
+                        <div class="tab-item" data-area="katsushika">葛飾区</div>
+                        <div class="tab-item" data-area="edogawa">江戸川区</div>
+                    </div>
+                </div>
+
+                <!-- 多摩地域 -->
+                <div class="tab-group">
+                    <div class="tab-group-header" onclick="toggleTabGroup(this)">
+                        🌲 多摩地域
+                    </div>
+                    <div class="tab-items">
+                        <div class="tab-item" data-area="hachioji">八王子市</div>
+                        <div class="tab-item" data-area="tachikawa">立川市</div>
+                        <div class="tab-item" data-area="musashino">武蔵野市</div>
+                        <div class="tab-item" data-area="mitaka">三鷹市</div>
+                        <div class="tab-item" data-area="machida">町田市</div>
+                    </div>
+                </div>
             </div>
         </div>
-    </nav>
 
-    <!-- メインコンテンツ -->
-    <div class="container">
-        <!-- メインエリア -->
-        <div class="main-content">
-            <!-- マップカード -->
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">
-                        <span>🗺️</span>
-                        東京駐輪場マップ
-                    </h2>
-                </div>
-                <div class="card-content">
-                    <div id="map" class="map-container"></div>
-                    <div class="map-legend">
-                        <div class="legend-item">🟢 空きあり</div>
-                        <div class="legend-item">🟡 やや混雑</div>
-                        <div class="legend-item">🔴 ほぼ満車</div>
-                        <div class="legend-item">📍 クリックで詳細表示</div>
-                    </div>
-                </div>
+        <!-- 中央マップエリア -->
+        <div class="map-container">
+            <div id="map"></div>
+            <div class="map-controls">
+                <div class="current-area" id="currentArea">エリアを選択してください</div>
+                <div class="area-info" id="areaInfo">左のタブからエリアを選択</div>
             </div>
+        </div>
 
-            <!-- エリア選択カード -->
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">
-                        <span>📍</span>
-                        エリア選択
-                    </h2>
-                </div>
-                <div class="card-content">
-                    <div class="area-selector">
-                        <label for="wardSelect">区・市を選択:</label>
-                        <select id="wardSelect" class="area-select">
-                            <option value="">エリアを選択してください</option>
-                            <optgroup label="主要駅周辺">
-                                <option value="shinjuku">🏢 新宿駅周辺</option>
-                                <option value="shibuya">🎌 渋谷駅周辺</option>
-                                <option value="ikebukuro">🛍️ 池袋駅周辺</option>
-                                <option value="tokyo">🏯 東京駅周辺</option>
-                                <option value="shinagawa">🚅 品川駅周辺</option>
-                                <option value="ueno">🌸 上野駅周辺</option>
-                            </optgroup>
-                            <optgroup label="23区">
-                                <option value="chiyoda">千代田区</option>
-                                <option value="chuo">中央区</option>
-                                <option value="minato">港区</option>
-                                <option value="shinjuku_ward">新宿区</option>
-                                <option value="bunkyo">文京区</option>
-                                <option value="taito">台東区</option>
-                                <option value="sumida">墨田区</option>
-                                <option value="koto">江東区</option>
-                                <option value="shinagawa_ward">品川区</option>
-                                <option value="meguro">目黒区</option>
-                                <option value="ota">大田区</option>
-                                <option value="setagaya">世田谷区</option>
-                                <option value="shibuya_ward">渋谷区</option>
-                                <option value="nakano">中野区</option>
-                                <option value="suginami">杉並区</option>
-                                <option value="toshima">豊島区</option>
-                                <option value="kita">北区</option>
-                                <option value="arakawa">荒川区</option>
-                                <option value="itabashi">板橋区</option>
-                                <option value="nerima">練馬区</option>
-                                <option value="adachi">足立区</option>
-                                <option value="katsushika">葛飾区</option>
-                                <option value="edogawa">江戸川区</option>
-                            </optgroup>
-                            <optgroup label="多摩地域">
-                                <option value="hachioji">八王子市</option>
-                                <option value="tachikawa">立川市</option>
-                                <option value="musashino">武蔵野市</option>
-                                <option value="mitaka">三鷹市</option>
-                                <option value="machida">町田市</option>
-                            </optgroup>
-                        </select>
-                        <button id="searchButton" class="search-btn">検索</button>
-                    </div>
-                </div>
+        <!-- 右サイドバー（チャット） -->
+        <div class="right-sidebar collapsed" id="rightSidebar">
+            <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="チャットを開く/閉じる">
+                <span class="sidebar-toggle-icon">💬 チャットで質問</span>
+            </button>
+            
+            <div class="chat-header">
+                <div class="chat-title">💬 駐輪場チャット</div>
+                <div class="chat-subtitle">質問や検索ができます</div>
             </div>
-
-            <!-- チャットカード -->
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">
-                        <span>💬</span>
-                        駐輪場検索チャット
-                    </h2>
+            
+            <div class="chat-tabs" id="chatTabs">
+                <div class="chat-tab active" id="tab-1" onclick="switchChatTab(1)">
+                    <span>💬 検索チャット</span>
+                    <button class="tab-close" onclick="event.stopPropagation(); confirmCloseChatTab(1)" title="タブを閉じる">×</button>
                 </div>
-                <div class="card-content">
-                    <div class="chat-container">
-                        <div id="chatMessages" class="chat-messages"></div>
-                        <div class="chat-input-container">
-                            <input type="text" id="chatInput" class="chat-input" placeholder="駐輪場について質問してください...">
-                            <button id="sendButton" class="chat-button">送信</button>
+                <div class="new-chat-tab" onclick="createNewChatTab()" title="新しいタブを作成">+</div>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages-1">
+                <div class="message bot">
+                    <div class="message-content">
+                        こんにちは！東京の駐輪場をお探しですね 🚲<br>
+                        まず、どちらの方法で探しますか？
+                        <div class="chat-options">
+                            <div class="option-button" onclick="selectSearchMethod('destination')">
+                                📍 目的地から駐輪場を探す
+                            </div>
+                            <div class="option-button" onclick="selectSearchMethod('area')">
+                                🗺️ エリアから駐輪場を探す
+                            </div>
+                            <div class="option-button" onclick="selectSearchMethod('condition')">
+                                ⚙️ 条件から駐輪場を探す
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- サイドバー -->
-        <div class="sidebar">
-            <!-- 駐輪場一覧カード -->
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">
-                        <span>🚲</span>
-                        駐輪場一覧
-                    </h2>
-                </div>
-                <div class="card-content">
-                    <div id="loadingMessage" class="loading-message">データを読み込み中...</div>
-                    <div id="parkingList" class="parking-list" style="display: none;"></div>
+            
+            <div class="chat-input">
+                <div class="input-container">
+                    <input type="text" class="message-input" id="messageInput" placeholder="駐輪場について質問してください...">
+                    <button class="send-button" onclick="sendMessage()">送信</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- 左下固定広告エリア -->
+    <div class="bottom-left-ad">
+        <div class="ad-close" onclick="closeBottomAd()">&times;</div>
+        <div class="ad-content-small">
+            <img src="https://via.placeholder.com/200x100/e74c3c/ffffff?text=自転車保険" alt="自転車保険" class="small-ad-image">
+            <div class="small-ad-text">
+                <h5>駐輪場利用者必見！</h5>
+                <p>自転車保険で安心・安全</p>
+                <button class="small-ad-button" onclick="handleBottomAdClick()">詳細</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const API_ENDPOINT = 'https://xckspu9thj.execute-api.ap-northeast-1.amazonaws.com/dev';
+        // グローバル変数
         let map;
+        let currentArea = null;
         let markers = [];
-        
-        // Leaflet地図初期化
-        function initMap() {
-            try {
-                map = L.map('map').setView([35.6762, 139.6503], 11);
-                
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '© OpenStreetMap contributors'
-                }).addTo(map);
-                
-                return true;
-            } catch (error) {
-                console.error('地図の初期化に失敗しました:', error);
-                return false;
+        let clusterMarkers = []; // クラスター用マーカー
+        let currentChatTab = 1;
+        let chatTabCounter = 1;
+        let currentParkingData = [];
+        let currentZoomLevel = 11;
+        let chatTabs = {
+            1: {
+                id: 1,
+                title: '💬 検索チャット',
+                messages: [],
+                state: {
+                    step: 'initial',
+                    method: null,
+                    destination: null,
+                    priority: null,
+                    selectedOptions: {}
+                }
+            }
+        };
+
+        // エリアデータ
+        const areaData = {
+            'shinjuku': { name: '新宿駅周辺', ward: '新宿区', coordinates: [35.6896, 139.7006] },
+            'shibuya': { name: '渋谷駅周辺', ward: '渋谷区', coordinates: [35.6598, 139.7006] },
+            'ikebukuro': { name: '池袋駅周辺', ward: '豊島区', coordinates: [35.7295, 139.7109] },
+            'tokyo': { name: '東京駅周辺', ward: '千代田区', coordinates: [35.6812, 139.7671] },
+            'shinagawa': { name: '品川駅周辺', ward: '港区', coordinates: [35.6284, 139.7387] },
+            'ueno': { name: '上野駅周辺', ward: '台東区', coordinates: [35.7140, 139.7774] },
+            'chiyoda': { name: '千代田区', ward: '千代田区', coordinates: [35.6939, 139.7535] },
+            'chuo': { name: '中央区', ward: '中央区', coordinates: [35.6735, 139.7712] },
+            'minato': { name: '港区', ward: '港区', coordinates: [35.6581, 139.7414] },
+            'shinjuku_ward': { name: '新宿区', ward: '新宿区', coordinates: [35.6896, 139.7006] },
+            'bunkyo': { name: '文京区', ward: '文京区', coordinates: [35.7083, 139.7516] },
+            'taito': { name: '台東区', ward: '台東区', coordinates: [35.7120, 139.7795] },
+            'sumida': { name: '墨田区', ward: '墨田区', coordinates: [35.7100, 139.8017] },
+            'koto': { name: '江東区', ward: '江東区', coordinates: [35.6727, 139.8169] },
+            'shinagawa_ward': { name: '品川区', ward: '品川区', coordinates: [35.6284, 139.7387] },
+            'meguro': { name: '目黒区', ward: '目黒区', coordinates: [35.6439, 139.7157] },
+            'ota': { name: '大田区', ward: '大田区', coordinates: [35.5613, 139.7164] },
+            'setagaya': { name: '世田谷区', ward: '世田谷区', coordinates: [35.6464, 139.6534] },
+            'shibuya_ward': { name: '渋谷区', ward: '渋谷区', coordinates: [35.6598, 139.7006] },
+            'nakano': { name: '中野区', ward: '中野区', coordinates: [35.7055, 139.6653] },
+            'suginami': { name: '杉並区', ward: '杉並区', coordinates: [35.6998, 139.6363] },
+            'toshima': { name: '豊島区', ward: '豊島区', coordinates: [35.7295, 139.7109] },
+            'kita': { name: '北区', ward: '北区', coordinates: [35.7539, 139.7340] },
+            'arakawa': { name: '荒川区', ward: '荒川区', coordinates: [35.7364, 139.7834] },
+            'itabashi': { name: '板橋区', ward: '板橋区', coordinates: [35.7505, 139.7089] },
+            'nerima': { name: '練馬区', ward: '練馬区', coordinates: [35.7353, 139.6532] },
+            'adachi': { name: '足立区', ward: '足立区', coordinates: [35.7751, 139.8048] },
+            'katsushika': { name: '葛飾区', ward: '葛飾区', coordinates: [35.7436, 139.8485] },
+            'edogawa': { name: '江戸川区', ward: '江戸川区', coordinates: [35.7069, 139.8683] },
+            'hachioji': { name: '八王子市', ward: '八王子市', coordinates: [35.6560, 139.3439] },
+            'tachikawa': { name: '立川市', ward: '立川市', coordinates: [35.7022, 139.4138] },
+            'musashino': { name: '武蔵野市', ward: '武蔵野市', coordinates: [35.7178, 139.5640] },
+            'mitaka': { name: '三鷹市', ward: '三鷹市', coordinates: [35.6837, 139.5596] },
+            'machida': { name: '町田市', ward: '町田市', coordinates: [35.5439, 139.4269] }
+        };
+
+        // サイドバー表示切り替え
+        function toggleSidebar() {
+            const sidebar = document.getElementById('rightSidebar');
+            const toggle = document.getElementById('sidebarToggle');
+            const mainContainer = document.querySelector('.main-container');
+            
+            if (sidebar.classList.contains('collapsed')) {
+                sidebar.classList.remove('collapsed');
+                mainContainer.classList.remove('chat-collapsed');
+                toggle.innerHTML = '<span class="sidebar-toggle-icon">◀</span>';
+            } else {
+                sidebar.classList.add('collapsed');
+                mainContainer.classList.add('chat-collapsed');
+                toggle.innerHTML = '<span class="sidebar-toggle-icon">💬 チャットで質問</span>';
             }
         }
 
-        // 自転車マーカーのアイコンを生成
-        function createBikeIcon(color) {
+        // 新しいタブ作成
+        function createNewChatTab() {
+            chatTabCounter++;
+            const newTabId = chatTabCounter;
+            
+            // 新しいタブデータ
+            chatTabs[newTabId] = {
+                id: newTabId,
+                title: `💬 質問 ${newTabId}`,
+                messages: [],
+                state: {
+                    step: 'initial',
+                    method: null,
+                    destination: null,
+                    priority: null,
+                    selectedOptions: {}
+                }
+            };
+            
+            // タブUIを追加
+            const tabsContainer = document.getElementById('chatTabs');
+            const newChatTab = tabsContainer.querySelector('.new-chat-tab');
+            
+            const tabElement = document.createElement('div');
+            tabElement.className = 'chat-tab';
+            tabElement.id = `tab-${newTabId}`;
+            tabElement.onclick = () => switchChatTab(newTabId);
+            tabElement.innerHTML = `
+                <span>${chatTabs[newTabId].title}</span>
+                <button class="tab-close" onclick="event.stopPropagation(); confirmCloseChatTab(${newTabId})" title="タブを閉じる">×</button>
+            `;
+            
+            tabsContainer.insertBefore(tabElement, newChatTab);
+            
+            // メッセージエリアを作成
+            const chatContainer = document.querySelector('.right-sidebar');
+            const messagesContainer = document.createElement('div');
+            messagesContainer.className = 'chat-messages';
+            messagesContainer.id = `chatMessages-${newTabId}`;
+            messagesContainer.style.display = 'none';
+            messagesContainer.innerHTML = `
+                <div class="message bot">
+                    <div class="message-content">
+                        こんにちは！東京の駐輪場をお探しですね 🚲<br>
+                        まず、どちらの方法で探しますか？
+                        <div class="chat-options">
+                            <div class="option-button" onclick="selectSearchMethod('destination')">
+                                📍 目的地から駐輪場を探す
+                            </div>
+                            <div class="option-button" onclick="selectSearchMethod('area')">
+                                🗺️ エリアから駐輪場を探す
+                            </div>
+                            <div class="option-button" onclick="selectSearchMethod('condition')">
+                                ⚙️ 条件から駐輪場を探す
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const chatInput = chatContainer.querySelector('.chat-input');
+            chatContainer.insertBefore(messagesContainer, chatInput);
+            
+            // 新しいタブに切り替え
+            switchChatTab(newTabId);
+            
+            // 成功通知
+            showNotification(`新しいタブ「${chatTabs[newTabId].title}」を作成しました`, 'success');
+        }
+
+        // タブ切り替え
+        function switchChatTab(tabId) {
+            // 前のタブを非アクティブに
+            document.querySelectorAll('.chat-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.chat-messages').forEach(messages => {
+                messages.style.display = 'none';
+            });
+            
+            // 新しいタブをアクティブに
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            document.getElementById(`chatMessages-${tabId}`).style.display = 'block';
+            
+            currentChatTab = tabId;
+        }
+
+        // タブ削除確認
+        function confirmCloseChatTab(tabId) {
+            const tabCount = Object.keys(chatTabs).length;
+            
+            if (tabCount <= 1) {
+                showNotification('最低1つのタブは必要です', 'warning');
+                return;
+            }
+            
+            closeChatTab(tabId);
+        }
+
+        // タブを閉じる（アニメーション付き）
+        function closeChatTab(tabId) {
+            const tabElement = document.getElementById(`tab-${tabId}`);
+            const messagesElement = document.getElementById(`chatMessages-${tabId}`);
+            
+            // 削除アニメーション開始
+            tabElement.classList.add('tab-removing');
+            
+            // アニメーション完了後に削除
+            setTimeout(() => {
+                // タブデータ削除
+                delete chatTabs[tabId];
+                
+                // UI削除
+                tabElement.remove();
+                messagesElement.remove();
+                
+                // アクティブタブが削除された場合、他のタブに切り替え
+                if (currentChatTab === tabId) {
+                    const remainingTabIds = Object.keys(chatTabs).map(id => parseInt(id));
+                    const remainingTabId = remainingTabIds[0];
+                    switchChatTab(remainingTabId);
+                }
+                
+                showNotification('タブを閉じました', 'success');
+            }, 300);
+        }
+
+        // 通知表示
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            const colors = {
+                success: '#27ae60',
+                warning: '#f39c12',
+                error: '#e74c3c',
+                info: '#3498db'
+            };
+            
+            notification.style.cssText = `
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                background: ${colors[type]};
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-size: 14px;
+                z-index: 10000;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                animation: slideInRight 0.3s ease-out;
+            `;
+            notification.textContent = message;
+            
+            // アニメーションCSS追加
+            if (!document.getElementById('notification-animations')) {
+                const style = document.createElement('style');
+                style.id = 'notification-animations';
+                style.textContent = `
+                    @keyframes slideInRight {
+                        from {
+                            opacity: 0;
+                            transform: translateX(100px);
+                        }
+                        to {
+                            opacity: 1;
+                            transform: translateX(0);
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            document.body.appendChild(notification);
+            
+            // 3秒後に削除
+            setTimeout(() => {
+                notification.style.animation = 'slideInRight 0.3s ease-out reverse';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // 地図初期化
+        function initMap() {
+            map = L.map('map').setView([35.6762, 139.6503], 11);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // ズームイベントリスナーを追加
+            map.on('zoomend', function() {
+                if (currentParkingData.length > 0) {
+                    updateMarkersForZoomLevel();
+                }
+            });
+        }
+
+        // タブグループの開閉
+        function toggleTabGroup(header) {
+            const tabItems = header.nextElementSibling;
+            const isActive = tabItems.classList.contains('active');
+            
+            // すべてのタブを閉じる
+            document.querySelectorAll('.tab-items').forEach(items => {
+                items.classList.remove('active');
+            });
+            
+            // クリックされたタブを開く（すでに開いていた場合は閉じる）
+            if (!isActive) {
+                tabItems.classList.add('active');
+            }
+        }
+
+        // エリア選択
+        function selectArea(areaId) {
+            console.log('エリア選択:', areaId);
+            
+            if (!areaData[areaId]) {
+                console.error('無効なエリア:', areaId);
+                return;
+            }
+
+            const area = areaData[areaId];
+            currentArea = areaId;
+
+            // 前の選択を解除
+            document.querySelectorAll('.tab-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+
+            // 新しい選択をハイライト
+            document.querySelector(`[data-area="${areaId}"]`).classList.add('selected');
+
+            // マップ移動
+            if (map) {
+                map.setView(area.coordinates, 15);
+            }
+
+            // コントロール更新
+            document.getElementById('currentArea').textContent = area.name;
+            document.getElementById('areaInfo').textContent = `${area.ward} を表示中`;
+
+            // 駐輪場データ生成（モック）
+            generateMockParkingData(area);
+
+            // チャットに結果表示（エリア選択時は履歴に残さない）
+            const currentState = chatTabs[currentChatTab].state;
+            if (currentState.method === 'area') {
+                // エリア選択モードの場合は履歴に残さず、マップ情報のみ更新
+                currentState.method = null; // リセット
+            } else if (currentState.method === 'destination') {
+                // 目的地検索モード - チャット履歴に追加
+                addBotMessage(`${area.name}周辺の駐輪場を表示しました 📍`, generateMockParkingList(area));
+            } else {
+                // 直接タブクリック - 通知メッセージのみ（詳細な履歴は不要）
+                if (currentArea !== null) {
+                    // 初回表示以外は通知を表示
+                    showMapNotification(`${area.name}の駐輪場情報を表示中`);
+                } else {
+                    // 初回表示時は歓迎メッセージ
+                    showMapNotification(`${area.name}の駐輪場を表示中（人気エリア）`);
+                }
+            }
+        }
+
+        // クラスター用アイコンを作成
+        function createClusterIcon(count, areaName) {
+            const size = Math.min(50, Math.max(30, 20 + count * 2)); // 駐輪場数に応じてサイズ調整
+            
             return L.divIcon({
+                className: 'custom-cluster-icon',
                 html: `
                     <div style="
-                        width: 32px; 
-                        height: 32px; 
-                        background: ${color}; 
-                        border: 3px solid white; 
-                        border-radius: 50%; 
-                        display: flex; 
-                        align-items: center; 
-                        justify-content: center; 
-                        font-size: 16px;
+                        background: linear-gradient(135deg, #3498db, #2980b9);
+                        width: ${size}px;
+                        height: ${size}px;
+                        border-radius: 50%;
+                        border: 3px solid white;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
                         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                    ">🚲</div>
+                        cursor: pointer;
+                        color: white;
+                        font-weight: bold;
+                    ">
+                        <div style="font-size: ${Math.max(12, size/4)}px;">${count}</div>
+                        <div style="font-size: ${Math.max(8, size/6)}px; opacity: 0.9;">件</div>
+                    </div>
                 `,
-                className: 'custom-bike-marker',
-                iconSize: [32, 32],
-                iconAnchor: [16, 16]
+                iconSize: [size, size],
+                iconAnchor: [size/2, size/2]
             });
         }
 
-        // 駐輪場マーカーを地図に追加
-        function addParkingMarkers(parkingData) {
-            if (!map) return;
+        // カスタムマーカーアイコンを作成
+        function createCustomIcon(available) {
+            let color, textColor;
+            
+            if (available <= 5) {
+                color = '#e74c3c'; // 赤
+                textColor = 'white';
+            } else if (available <= 15) {
+                color = '#f39c12'; // 黄色
+                textColor = 'white';
+            } else {
+                color = '#27ae60'; // 緑
+                textColor = 'white';
+            }
+            
+            return L.divIcon({
+                className: 'custom-div-icon',
+                html: `
+                    <div style="
+                        background-color: ${color};
+                        width: 30px;
+                        height: 30px;
+                        border-radius: 50% 50% 50% 0;
+                        border: 2px solid white;
+                        transform: rotate(-45deg);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+                    ">
+                        <span style="
+                            color: ${textColor};
+                            font-size: 10px;
+                            font-weight: bold;
+                            transform: rotate(45deg);
+                        ">${available}</span>
+                    </div>
+                `,
+                iconSize: [30, 30],
+                iconAnchor: [15, 30]
+            });
+        }
 
+        // 駐輪場データを一括生成する関数
+        function generateParkingDataSet(area) {
+            // 駐輪場データをクリア
+            currentParkingData = [];
+            
+            const parkingNames = ['駅前駐輪場', '市営駐輪場', '商業施設駐輪場', '公園駐輪場', '病院駐輪場'];
+            
+            for (let i = 0; i < 5; i++) {
+                const lat = area.coordinates[0] + (Math.random() - 0.5) * 0.01;
+                const lng = area.coordinates[1] + (Math.random() - 0.5) * 0.01;
+                const available = Math.floor(Math.random() * 50) + 1;
+                const total = Math.floor(Math.random() * 20) + 80;
+                const fee = (Math.floor(Math.random() * 5) + 1) * 100;
+                
+                const parkingData = {
+                    id: `${area.area}_${i}`,
+                    name: `${area.ward}${parkingNames[i]}`,
+                    available: available,
+                    total: total,
+                    fee: fee,
+                    lat: lat,
+                    lng: lng,
+                    ward: area.ward
+                };
+                currentParkingData.push(parkingData);
+            }
+            
+            return currentParkingData;
+        }
+
+        // モック駐輪場データ生成（マップ用）
+        function generateMockParkingData(area) {
+            // 既存のマーカーを削除
             markers.forEach(marker => map.removeLayer(marker));
             markers = [];
-
-            parkingData.forEach(spot => {
-                if (spot.lat && spot.lng) {
-                    let color = '#28a745';
-                    if (spot.occupancyRate > 80) color = '#dc3545';
-                    else if (spot.occupancyRate > 50) color = '#ffc107';
-                    
-                    const bikeIcon = createBikeIcon(color);
-                    const marker = L.marker([spot.lat, spot.lng], { icon: bikeIcon })
-                        .addTo(map)
-                        .bindPopup(`
-                            <div style="text-align: center; min-width: 200px;">
-                                <h4 style="margin: 10px 0; color: #2d3748;">${spot.name}</h4>
-                                <div style="font-size: 1.2em; margin: 10px 0;">
-                                    ${spot.occupancyRate > 80 ? '🔴' : spot.occupancyRate > 50 ? '🟡' : '🟢'}
-                                    <strong>${spot.availabilityShort}</strong>
-                                </div>
-                                <div style="margin: 8px 0; color: #4a5568;">💰 ${spot.price}</div>
-                                ${spot.freeBadge ? `<div style="background: linear-gradient(135deg, #48bb78, #38a169); color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; margin: 8px 0; display: inline-block;">🎉 ${spot.freeBadge}</div>` : ''}
-                                <div style="font-size: 0.9em; color: #718096; margin: 8px 0;">📍 ${spot.distance} (${spot.walkTime})</div>
-                                <div style="font-size: 0.85em; color: #4a5568; margin-top: 10px; padding-top: 8px; border-top: 1px solid #e2e8f0;">
-                                    💳 ${spot.paymentMethods || '現金'}
-                                </div>
-                            </div>
-                        `);
-                    
-                    markers.push(marker);
-                }
+            
+            // 統一された駐輪場データを生成
+            const parkingDataSet = generateParkingDataSet(area);
+            
+            // マーカーを作成
+            parkingDataSet.forEach(parkingData => {
+                const customIcon = createCustomIcon(parkingData.available);
+                
+                const marker = L.marker([parkingData.lat, parkingData.lng], { icon: customIcon }).addTo(map)
+                    .bindPopup(`
+                        <div>
+                            <h4>${parkingData.name}</h4>
+                            <p style="color: ${parkingData.available <= 5 ? '#e74c3c' : parkingData.available <= 15 ? '#f39c12' : '#27ae60'}; font-weight: bold;">
+                                空き: ${parkingData.available}/${parkingData.total}台
+                            </p>
+                            <p>料金: ${parkingData.fee}円/日</p>
+                            <p>営業: 24時間</p>
+                        </div>
+                    `)
+                    .on('click', function() {
+                        focusOnMarker(this);
+                    });
+                
+                // マーカーにIDを設定
+                marker.parkingId = parkingData.id;
+                markers.push(marker);
             });
         }
 
-        async function loadParkingData(area = null, ward = null) {
-            try {
-                let url = `${API_ENDPOINT}/parking-spots`;
-                if (area || ward) {
-                    const params = new URLSearchParams();
-                    if (area) params.append('area', area);
-                    if (ward) params.append('ward', ward);
-                    url += `?${params.toString()}`;
+        // モック駐輪場リスト生成（チャット用）
+        function generateMockParkingList(area) {
+            let html = '<div class="parking-list">';
+            
+            // 既存の駐輪場データを使用（マップと同期）
+            if (currentParkingData.length === 0) {
+                // データがない場合は新規生成
+                generateParkingDataSet(area);
+            }
+            
+            // 既存データを使ってHTMLを生成
+            currentParkingData.forEach(parkingData => {
+                html += `
+                    <div class="parking-card" onclick="focusOnParking('${parkingData.id}')">
+                        <div class="parking-name">${parkingData.name}</div>
+                        <div class="parking-info">
+                            <span>空き: ${parkingData.available}/${parkingData.total}台</span>
+                            <span>${parkingData.fee}円/日</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            return html;
+        }
+
+        // マップ通知表示
+        function showMapNotification(message) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: absolute;
+                top: 80px;
+                right: 20px;
+                background: #27ae60;
+                color: white;
+                padding: 10px 15px;
+                border-radius: 8px;
+                font-size: 14px;
+                z-index: 1000;
+                animation: fadeInOut 3s ease-in-out;
+            `;
+            notification.textContent = message;
+            
+            // アニメーションのCSSを追加
+            if (!document.getElementById('notification-style')) {
+                const style = document.createElement('style');
+                style.id = 'notification-style';
+                style.textContent = `
+                    @keyframes fadeInOut {
+                        0% { opacity: 0; transform: translateY(-10px); }
+                        20%, 80% { opacity: 1; transform: translateY(0); }
+                        100% { opacity: 0; transform: translateY(-10px); }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            document.querySelector('.map-container').appendChild(notification);
+            
+            // 3秒後に削除
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // チャット状態リセット
+        function resetChatState() {
+            chatTabs[currentChatTab].state = {
+                step: 'initial',
+                method: null,
+                destination: null,
+                priority: null,
+                selectedOptions: {}
+            };
+        }
+
+        // チャットメッセージ追加
+        function addBotMessage(text, html = '') {
+            const chatMessages = document.getElementById(`chatMessages-${currentChatTab}`);
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message bot';
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    ${text}
+                    ${html}
+                    ${html ? '<div style="margin-top: 10px;"><button class="confirm-button" onclick="showNewSearchOptions()">別の検索をする</button></div>' : ''}
+                </div>
+            `;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 新しい検索オプションを表示
+        function showNewSearchOptions() {
+            resetChatState();
+            const html = `
+                他の駐輪場も探してみますか？ 🔍
+                <div class="chat-options">
+                    <div class="option-button" onclick="selectSearchMethod('destination')">
+                        📍 目的地から駐輪場を探す
+                    </div>
+                    <div class="option-button" onclick="selectSearchMethod('area')">
+                        🗺️ エリアから駐輪場を探す
+                    </div>
+                    <div class="option-button" onclick="selectSearchMethod('condition')">
+                        ⚙️ 条件から駐輪場を探す
+                    </div>
+                </div>
+            `;
+            addBotMessage(html);
+        }
+
+        function addUserMessage(text) {
+            const chatMessages = document.getElementById(`chatMessages-${currentChatTab}`);
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user';
+            messageDiv.innerHTML = `
+                <div class="message-content">${text}</div>
+            `;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 検索方法選択
+        function selectSearchMethod(method) {
+            const currentState = chatTabs[currentChatTab].state;
+            currentState.method = method;
+            currentState.step = 'method_selected';
+            
+            // 選択されたボタンをハイライト
+            document.querySelectorAll('.option-button').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+            
+            setTimeout(() => {
+                if (method === 'destination') {
+                    showDestinationInput();
+                } else if (method === 'area') {
+                    showAreaSelectionMessage();
+                } else if (method === 'condition') {
+                    showConditionOptions();
                 }
-                
-                const response = await fetch(url);
-                const data = await response.json();
-                
-                document.getElementById('loadingMessage').style.display = 'none';
-                document.getElementById('parkingList').style.display = 'block';
-                
-                const parkingList = document.getElementById('parkingList');
-                parkingList.innerHTML = data.map(spot => {
-                    const statusClass = spot.occupancyRate > 80 ? 'status-full' : 
-                                       spot.occupancyRate > 50 ? 'status-busy' : 'status-available';
-                    const statusIcon = spot.occupancyRate > 80 ? '🔴' : 
-                                      spot.occupancyRate > 50 ? '🟡' : '🟢';
-                    
-                    return `
-                        <div class="parking-item" onclick="focusOnMarker(${spot.lat}, ${spot.lng})">
-                            <div class="parking-header">
-                                <div>
-                                    <div class="parking-name">${spot.name}</div>
-                                    <div class="parking-address">${spot.address}</div>
-                                </div>
-                                <div class="availability-badge">
-                                    <div class="availability-status">${statusIcon}</div>
-                                    <div class="availability-text ${statusClass}">${spot.availabilityShort}</div>
-                                </div>
-                            </div>
-                            
-                            <div style="display: flex; align-items: center; margin: 0.5rem 0;">
-                                <span style="font-weight: 600; color: #2d3748;">💰 ${spot.price}</span>
-                                ${spot.freeBadge ? `<span class="free-badge">🎉 ${spot.freeBadge}</span>` : ''}
-                            </div>
-                            
-                            <div class="parking-details">
-                                <div class="detail-item">
-                                    <span class="detail-icon">📍</span>
-                                    <span>${spot.distance} (${spot.walkTime})</span>
-                                </div>
-                                <div class="detail-item">
-                                    <span class="detail-icon">🕒</span>
-                                    <span>${spot.hours}</span>
-                                </div>
-                                <div class="detail-item">
-                                    <span class="detail-icon">🚲</span>
-                                    <span>${spot.vehicleTypes}</span>
-                                </div>
-                                <div class="detail-item">
-                                    <span class="detail-icon">💳</span>
-                                    <span>${spot.paymentMethods || '現金'}</span>
-                                </div>
+            }, 500);
+        }
+
+        // 目的地入力を表示
+        function showDestinationInput() {
+            const html = `
+                目的地を教えてください 📍<br>
+                駅名、施設名、住所などを入力してください。
+                <input type="text" class="destination-input" id="destinationInput" placeholder="例：新宿駅、東京スカイツリー、渋谷109">
+                <button class="confirm-button" onclick="confirmDestination()">この目的地で検索</button>
+            `;
+            addBotMessage(html);
+        }
+
+        // エリア選択メッセージ
+        function showAreaSelectionMessage() {
+            chatTabs[currentChatTab].state.method = 'area';
+            addBotMessage('左のエリアタブから地域を選択してください 🗺️<br>選択すると、その地域の駐輪場一覧が表示されます。');
+        }
+
+        // 条件選択を表示
+        function showConditionOptions() {
+            const html = `
+                どのような条件でお探しですか？ ⚙️
+                <div class="chat-options">
+                    <div class="option-button" onclick="selectCondition('price')">
+                        💰 料金が安い駐輪場
+                    </div>
+                    <div class="option-button" onclick="selectCondition('availability')">
+                        🚲 空きが多い駐輪場
+                    </div>
+                    <div class="option-button" onclick="selectCondition('24hours')">
+                        🌙 24時間営業の駐輪場
+                    </div>
+                    <div class="option-button" onclick="selectCondition('station')">
+                        🚉 駅から近い駐輪場
+                    </div>
+                </div>
+            `;
+            addBotMessage(html);
+        }
+
+        // 目的地確定
+        function confirmDestination() {
+            const input = document.getElementById('destinationInput');
+            const destination = input.value.trim();
+            
+            if (!destination) {
+                alert('目的地を入力してください');
+                return;
+            }
+            
+            chatTabs[currentChatTab].state.destination = destination;
+            addUserMessage(destination);
+            
+            // 目的地から最適なエリアを推定
+            const estimatedArea = estimateAreaFromDestination(destination);
+            if (estimatedArea) {
+                selectArea(estimatedArea);
+            }
+            
+            // 優先順位を聞く
+            setTimeout(() => {
+                showPriorityOptions(destination);
+            }, 1000);
+        }
+
+        // 目的地からエリアを推定
+        function estimateAreaFromDestination(destination) {
+            const dest = destination.toLowerCase();
+            
+            if (dest.includes('新宿') || dest.includes('shinjuku')) return 'shinjuku';
+            if (dest.includes('渋谷') || dest.includes('shibuya')) return 'shibuya';
+            if (dest.includes('池袋') || dest.includes('ikebukuro')) return 'ikebukuro';
+            if (dest.includes('東京駅') || dest.includes('tokyo')) return 'tokyo';
+            if (dest.includes('品川') || dest.includes('shinagawa')) return 'shinagawa';
+            if (dest.includes('上野') || dest.includes('ueno')) return 'ueno';
+            
+            // デフォルトは池袋
+            return 'ikebukuro';
+        }
+
+        // 優先順位選択を表示
+        function showPriorityOptions(destination) {
+            const html = `
+                「${destination}」周辺の駐輪場ですね！<br>
+                何を重視して選びますか？ 🤔
+                <div class="chat-options">
+                    <div class="option-button" onclick="selectPriority('distance')">
+                        🚶 目的地からの距離
+                    </div>
+                    <div class="option-button" onclick="selectPriority('price')">
+                        💰 料金の安さ
+                    </div>
+                    <div class="option-button" onclick="selectPriority('availability')">
+                        🚲 空きの多さ
+                    </div>
+                    <div class="option-button" onclick="selectPriority('hours')">
+                        🕐 営業時間の長さ
+                    </div>
+                </div>
+            `;
+            addBotMessage(html);
+        }
+
+        // 優先順位選択
+        function selectPriority(priority) {
+            chatTabs[currentChatTab].state.priority = priority;
+            
+            // 選択をハイライト
+            document.querySelectorAll('.option-button').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+            
+            const priorityNames = {
+                'distance': '距離重視',
+                'price': '料金重視',
+                'availability': '空き状況重視',
+                'hours': '営業時間重視'
+            };
+            
+            setTimeout(() => {
+                const resultHtml = generatePrioritizedParkingList(chatTabs[currentChatTab].state.destination, priority);
+                addBotMessage(`${priorityNames[priority]}で検索しました！ 🎯`, resultHtml);
+            }, 800);
+        }
+
+        // 条件選択
+        function selectCondition(condition) {
+            chatTabs[currentChatTab].state.priority = condition;
+            
+            // 選択をハイライト
+            document.querySelectorAll('.option-button').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+            
+            setTimeout(() => {
+                const resultHtml = generateConditionBasedParkingList(condition);
+                addBotMessage(`条件に合う駐輪場を見つけました！ ✨`, resultHtml);
+            }, 800);
+        }
+
+        // 優先順位に基づく駐輪場リスト生成
+        function generatePrioritizedParkingList(destination, priority) {
+            const parkingData = [
+                { name: `${destination}駅前駐輪場`, distance: '徒歩1分', price: 200, availability: 45, hours: '24時間' },
+                { name: `${destination}市営駐輪場`, distance: '徒歩3分', price: 100, availability: 23, hours: '6:00-22:00' },
+                { name: `${destination}商業施設駐輪場`, distance: '徒歩5分', price: 300, availability: 67, hours: '24時間' },
+                { name: `${destination}公園駐輪場`, distance: '徒歩7分', price: 150, availability: 89, hours: '5:00-23:00' }
+            ];
+
+            // 優先順位に基づいてソート
+            if (priority === 'distance') {
+                parkingData.sort((a, b) => parseInt(a.distance) - parseInt(b.distance));
+            } else if (priority === 'price') {
+                parkingData.sort((a, b) => a.price - b.price);
+            } else if (priority === 'availability') {
+                parkingData.sort((a, b) => b.availability - a.availability);
+            }
+
+            let html = '<div class="parking-list">';
+            parkingData.forEach((parking, index) => {
+                const tag = index === 0 ? `<span class="priority-tag ${priority}">おすすめ</span>` : '';
+                html += `
+                    <div class="parking-card">
+                        <div class="parking-name">${parking.name}${tag}</div>
+                        <div class="parking-info">
+                            <span>${parking.distance} | 空き: ${parking.availability}台</span>
+                            <span>${parking.price}円/日</span>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            return html;
+        }
+
+        // 条件に基づく駐輪場リスト生成
+        function generateConditionBasedParkingList(condition) {
+            let html = '<div class="parking-list">';
+            
+            if (condition === 'price') {
+                const cheapParkings = [
+                    { name: '市営第一駐輪場', price: 50, info: '徒歩5分' },
+                    { name: '区営駐輪場', price: 80, info: '徒歩3分' },
+                    { name: '商店街駐輪場', price: 100, info: '徒歩2分' }
+                ];
+                cheapParkings.forEach(parking => {
+                    html += `
+                        <div class="parking-card">
+                            <div class="parking-name">${parking.name}<span class="priority-tag price">激安</span></div>
+                            <div class="parking-info">
+                                <span>${parking.info}</span>
+                                <span>${parking.price}円/日</span>
                             </div>
                         </div>
                     `;
-                }).join('');
-
-                if (map) {
-                    addParkingMarkers(data);
-                }
-            } catch (error) {
-                document.getElementById('loadingMessage').innerHTML = 'データの読み込みに失敗しました';
-                console.error('Error loading parking data:', error);
-            }
-        }
-
-        function focusOnMarker(lat, lng) {
-            if (map) {
-                map.setView([lat, lng], 18);
-                // マーカーのポップアップを開く
-                markers.forEach(marker => {
-                    const markerLatLng = marker.getLatLng();
-                    if (Math.abs(markerLatLng.lat - lat) < 0.001 && Math.abs(markerLatLng.lng - lng) < 0.001) {
-                        marker.openPopup();
-                    }
+                });
+            } else if (condition === '24hours') {
+                const allDayParkings = [
+                    { name: '24時間駅前駐輪場', info: '徒歩1分 | 空き: 34台' },
+                    { name: 'コンビニ併設駐輪場', info: '徒歩4分 | 空き: 12台' },
+                    { name: '24時間商業施設駐輪場', info: '徒歩6分 | 空き: 56台' }
+                ];
+                allDayParkings.forEach(parking => {
+                    html += `
+                        <div class="parking-card">
+                            <div class="parking-name">${parking.name}<span class="priority-tag">24H</span></div>
+                            <div class="parking-info">
+                                <span>${parking.info}</span>
+                                <span>200円/日</span>
+                            </div>
+                        </div>
+                    `;
                 });
             }
+            
+            html += '</div>';
+            return html;
         }
 
-        // Area mapping for API requests
-        const areaMapping = {
-            'shinjuku': { area: 'shinjuku', ward: '新宿区' },
-            'shibuya': { area: 'shibuya', ward: '渋谷区' },
-            'ikebukuro': { area: 'ikebukuro', ward: '豊島区' },
-            'tokyo': { area: 'tokyo', ward: '千代田区' },
-            'shinagawa': { area: 'shinagawa', ward: '港区' },
-            'ueno': { area: 'ueno', ward: '台東区' },
-            'chiyoda': { area: 'chiyoda', ward: '千代田区' },
-            'chuo': { area: 'chuo', ward: '中央区' },
-            'minato': { area: 'minato', ward: '港区' },
-            'shinjuku_ward': { area: 'shinjuku', ward: '新宿区' },
-            'bunkyo': { area: 'bunkyo', ward: '文京区' },
-            'taito': { area: 'taito', ward: '台東区' },
-            'sumida': { area: 'sumida', ward: '墨田区' },
-            'koto': { area: 'koto', ward: '江東区' },
-            'shinagawa_ward': { area: 'shinagawa', ward: '品川区' },
-            'meguro': { area: 'meguro', ward: '目黒区' },
-            'ota': { area: 'ota', ward: '大田区' },
-            'setagaya': { area: 'setagaya', ward: '世田谷区' },
-            'shibuya_ward': { area: 'shibuya', ward: '渋谷区' },
-            'nakano': { area: 'nakano', ward: '中野区' },
-            'suginami': { area: 'suginami', ward: '杉並区' },
-            'toshima': { area: 'toshima', ward: '豊島区' },
-            'kita': { area: 'kita', ward: '北区' },
-            'arakawa': { area: 'arakawa', ward: '荒川区' },
-            'itabashi': { area: 'itabashi', ward: '板橋区' },
-            'nerima': { area: 'nerima', ward: '練馬区' },
-            'adachi': { area: 'adachi', ward: '足立区' },
-            'katsushika': { area: 'katsushika', ward: '葛飾区' },
-            'edogawa': { area: 'edogawa', ward: '江戸川区' },
-            'hachioji': { area: 'hachioji', ward: '八王子市' },
-            'tachikawa': { area: 'tachikawa', ward: '立川市' },
-            'musashino': { area: 'musashino', ward: '武蔵野市' },
-            'mitaka': { area: 'mitaka', ward: '三鷹市' },
-            'machida': { area: 'machida', ward: '町田市' }
-        };
-
-        async function handleAreaSearch() {
-            const wardSelect = document.getElementById('wardSelect');
-            const selectedArea = wardSelect.value;
-            
-            if (!selectedArea) {
-                alert('エリアを選択してください');
-                return;
-            }
-            
-            const areaData = areaMapping[selectedArea];
-            if (!areaData) {
-                alert('無効なエリアが選択されました');
-                return;
-            }
-            
-            document.getElementById('loadingMessage').style.display = 'block';
-            document.getElementById('loadingMessage').textContent = `${areaData.ward}のデータを読み込み中...`;
-            document.getElementById('parkingList').style.display = 'none';
-            
-            await loadParkingData(areaData.area, areaData.ward);
-        }
-
-        async function sendChatMessage() {
-            const input = document.getElementById('chatInput');
+        // メッセージ送信（フリー入力）
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
             const message = input.value.trim();
+            
             if (!message) return;
-
-            const chatMessages = document.getElementById('chatMessages');
             
-            chatMessages.innerHTML += `
-                <div style="margin-bottom: 1rem; text-align: right;">
-                    <div style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 0.75rem 1rem; border-radius: 1rem; display: inline-block; max-width: 80%; font-size: 0.875rem;">
-                        ${message}
-                    </div>
-                </div>
-            `;
-            
+            addUserMessage(message);
             input.value = '';
             
-            chatMessages.innerHTML += `
-                <div style="margin-bottom: 1rem;">
-                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 0.75rem 1rem; border-radius: 1rem; display: inline-block; max-width: 80%; font-size: 0.875rem; color: #718096;">
-                        回答を生成中...
-                    </div>
-                </div>
-            `;
-            
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            // 簡単な応答ロジック
+            setTimeout(() => {
+                if (message.includes('空き') || message.includes('available')) {
+                    showConditionOptions();
+                } else if (message.includes('料金') || message.includes('安い')) {
+                    selectCondition('price');
+                } else if (message.includes('24時間') || message.includes('深夜')) {
+                    selectCondition('24hours');
+                } else {
+                    addBotMessage('ご質問ありがとうございます！上の選択肢から検索方法を選んでいただくか、具体的な目的地や条件を教えてください。');
+                }
+            }, 500);
+        }
 
-            try {
-                const response = await fetch(`${API_ENDPOINT}/chat`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        message: message,
-                        isSelectionMode: false
-                    })
-                });
-                
-                const data = await response.json();
-                
-                const lastMessage = chatMessages.lastElementChild;
-                lastMessage.innerHTML = `
-                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 0.75rem 1rem; border-radius: 1rem; display: inline-block; max-width: 80%; font-size: 0.875rem; color: #2d3748;">
-                        ${data.response || data.message || 'エラーが発生しました'}
-                    </div>
-                `;
-                
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            } catch (error) {
-                const lastMessage = chatMessages.lastElementChild;
-                lastMessage.innerHTML = `
-                    <div style="background: #fed7d7; border: 1px solid #feb2b2; padding: 0.75rem 1rem; border-radius: 1rem; display: inline-block; max-width: 80%; font-size: 0.875rem; color: #c53030;">
-                        エラーが発生しました。しばらく後でお試しください。
-                    </div>
-                `;
-                console.error('Error sending chat message:', error);
+        // マーカーにフォーカスする関数（マーカーの直接クリック用）
+        function focusOnMarker(marker) {
+            const markerLatLng = marker.getLatLng();
+            console.log('マーカークリック - 移動先座標:', markerLatLng.lat, markerLatLng.lng);
+            
+            // マップを駐輪場の位置に移動（詳細ズーム）
+            map.setView([markerLatLng.lat, markerLatLng.lng], 18, {
+                animate: true,
+                duration: 0.5
+            });
+            
+            // 少し遅らせてハイライト効果
+            setTimeout(() => {
+                highlightMarker(marker);
+            }, 500);
+            
+            // 駐輪場データから名前を取得して通知
+            const parkingData = currentParkingData.find(p => p.id === marker.parkingId);
+            if (parkingData) {
+                showMapNotification(`${parkingData.name}にズーム中`);
             }
         }
 
-        document.getElementById('sendButton').addEventListener('click', sendChatMessage);
-        document.getElementById('chatInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendChatMessage();
+        // 駐輪場にフォーカスする関数（チャットからの呼び出し用）
+        function focusOnParking(parkingId) {
+            console.log('駐輪場にフォーカス:', parkingId);
+            
+            // 該当する駐輪場データを見つける
+            const parking = currentParkingData.find(p => p.id === parkingId);
+            if (!parking) {
+                console.error('駐輪場が見つかりません:', parkingId);
+                return;
             }
-        });
-        document.getElementById('searchButton').addEventListener('click', handleAreaSearch);
+            
+            // 該当するマーカーを見つける
+            const marker = markers.find(m => m.parkingId === parkingId);
+            if (!marker) {
+                console.error('マーカーが見つかりません:', parkingId);
+                return;
+            }
+            
+            console.log('移動先座標:', parking.lat, parking.lng);
+            console.log('マーカー座標:', marker.getLatLng());
+            
+            // マップを駐輪場の位置に移動（ズームアップ）
+            map.setView([parking.lat, parking.lng], 18, {
+                animate: true,
+                duration: 0.5
+            });
+            
+            // マーカーのポップアップを開く
+            setTimeout(() => {
+                marker.openPopup();
+                // 一時的にマーカーをハイライト
+                highlightMarker(marker);
+            }, 500);
+            
+            // 通知表示
+            showMapNotification(`${parking.name}を表示中`);
+        }
 
-        // 初期化
-        document.addEventListener('DOMContentLoaded', function() {
-            if (typeof L !== 'undefined') {
-                if (initMap()) {
-                    setTimeout(() => {
-                        // 初期表示は池袋エリアのデータを表示
-                        loadParkingData('ikebukuro', '豊島区');
-                        // 10分ごとに更新
-                        setInterval(() => loadParkingData('ikebukuro', '豊島区'), 600000);
-                    }, 500);
-                }
+        // マーカーハイライト効果
+        function highlightMarker(marker) {
+            // 元のアイコンを保存
+            const originalIcon = marker.getIcon();
+            
+            // ハイライト用のアイコンを作成（少し大きく、影付き）
+            const highlightIcon = L.divIcon({
+                className: 'custom-div-icon highlight',
+                html: originalIcon.options.html.replace(
+                    'box-shadow: 0 2px 5px rgba(0,0,0,0.3);',
+                    'box-shadow: 0 0 20px rgba(52, 152, 219, 0.8); animation: highlight-pulse 2s ease-in-out;'
+                ),
+                iconSize: [35, 35],
+                iconAnchor: [17.5, 35]
+            });
+            
+            // ハイライトアイコンに変更
+            marker.setIcon(highlightIcon);
+            
+            // 3秒後に元に戻す
+            setTimeout(() => {
+                marker.setIcon(originalIcon);
+            }, 3000);
+        }
+
+        // ズームレベルに応じて表示を更新
+        function updateMarkersForZoomLevel() {
+            const zoomLevel = map.getZoom();
+            console.log('ズームレベル変更:', zoomLevel);
+            
+            if (zoomLevel <= 13) {
+                // 遠い表示：クラスター表示
+                showClusterView();
             } else {
-                let checkLeaflet = setInterval(() => {
-                    if (typeof L !== 'undefined') {
-                        clearInterval(checkLeaflet);
-                        if (initMap()) {
-                            setTimeout(() => {
-                                // 初期表示は池袋エリアのデータを表示
-                                loadParkingData('ikebukuro', '豊島区');
-                                // 10分ごとに更新
-                                setInterval(() => loadParkingData('ikebukuro', '豊島区'), 600000);
-                            }, 500);
-                        }
-                    }
-                }, 100);
+                // 近い表示：個別駐輪場表示
+                showDetailedView();
             }
+        }
+
+        // クラスター表示（遠い時）
+        function showClusterView() {
+            // 個別マーカーを非表示
+            markers.forEach(marker => map.removeLayer(marker));
+            
+            // クラスターマーカーを表示
+            clusterMarkers.forEach(marker => map.removeLayer(marker));
+            clusterMarkers = [];
+            
+            // エリア別にグループ化して表示
+            const areaGroups = {
+                '新宿・渋谷・池袋': { count: 15, center: [35.6896, 139.7006], areas: ['新宿', '渋谷', '池袋'] },
+                '東京・品川・上野': { count: 12, center: [35.6812, 139.7671], areas: ['東京', '品川', '上野'] },
+                '錦糸町・北千住': { count: 8, center: [35.6969, 139.8137], areas: ['錦糸町', '北千住'] },
+                '吉祥寺・立川': { count: 10, center: [35.7022, 139.4138], areas: ['吉祥寺', '立川'] },
+                '町田・八王子': { count: 7, center: [35.5439, 139.4269], areas: ['町田', '八王子'] },
+                '自由が丘・二子玉川': { count: 6, center: [35.6081, 139.6687], areas: ['自由が丘', '二子玉川'] },
+                '赤羽周辺': { count: 4, center: [35.7775, 139.7228], areas: ['赤羽'] }
+            };
+
+            Object.entries(areaGroups).forEach(([areaName, data]) => {
+                const clusterIcon = createClusterIcon(data.count, areaName);
+                
+                const clusterMarker = L.marker(data.center, { icon: clusterIcon }).addTo(map)
+                    .bindPopup(`
+                        <div>
+                            <h4>${areaName}エリア</h4>
+                            <p><strong>${data.count}箇所の駐輪場</strong></p>
+                            <p>含まれるエリア: ${data.areas.join('、')}</p>
+                            <p style="font-size: 12px; color: #666;">詳細を見るにはズームインしてください</p>
+                        </div>
+                    `)
+                    .on('click', function() {
+                        // クラスタークリック時：該当エリアにズームイン
+                        map.setView(data.center, 15, {
+                            animate: true,
+                            duration: 0.8
+                        });
+                    });
+                
+                clusterMarkers.push(clusterMarker);
+            });
+        }
+
+        // 詳細表示（近い時）
+        function showDetailedView() {
+            // クラスターマーカーを非表示
+            clusterMarkers.forEach(marker => map.removeLayer(marker));
+            
+            // 個別マーカーを表示
+            if (currentParkingData.length > 0) {
+                currentParkingData.forEach(parkingData => {
+                    const customIcon = createCustomIcon(parkingData.available);
+                    
+                    const marker = L.marker([parkingData.lat, parkingData.lng], { icon: customIcon }).addTo(map)
+                        .bindPopup(`
+                            <div>
+                                <h4>${parkingData.name}</h4>
+                                <p style="color: ${parkingData.available <= 5 ? '#e74c3c' : parkingData.available <= 15 ? '#f39c12' : '#27ae60'}; font-weight: bold;">
+                                    空き: ${parkingData.available}/${parkingData.total}台
+                                </p>
+                                <p>料金: ${parkingData.fee}円/日</p>
+                                <p>営業: 24時間</p>
+                                <p>📍 ${parkingData.ward}</p>
+                            </div>
+                        `)
+                        .on('click', function() {
+                            focusOnMarker(this);
+                        });
+                    
+                    marker.parkingId = parkingData.id;
+                    markers.push(marker);
+                });
+            }
+        }
+
+        // 東京全域に駐輪場を表示する関数
+        function showTokyoWideParkingLots() {
+            // 既存のマーカーを削除
+            markers.forEach(marker => map.removeLayer(marker));
+            clusterMarkers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+            clusterMarkers = [];
+            currentParkingData = [];
+
+            // 主要エリアの座標（詳細表示用データ）
+            const majorAreas = [
+                { area: 'shinjuku', coordinates: [35.6896, 139.7006], ward: '新宿区' },
+                { area: 'shibuya', coordinates: [35.6598, 139.7006], ward: '渋谷区' },
+                { area: 'ikebukuro', coordinates: [35.7295, 139.7109], ward: '豊島区' },
+                { area: 'tokyo', coordinates: [35.6812, 139.7671], ward: '千代田区' },
+                { area: 'shinagawa', coordinates: [35.6284, 139.7387], ward: '港区' },
+                { area: 'ueno', coordinates: [35.7140, 139.7774], ward: '台東区' },
+                { area: 'kichijoji', coordinates: [35.7029, 139.5804], ward: '武蔵野市' },
+                { area: 'tachikawa', coordinates: [35.7022, 139.4138], ward: '立川市' },
+                { area: 'machida', coordinates: [35.5439, 139.4269], ward: '町田市' },
+                { area: 'hachioji', coordinates: [35.6560, 139.3439], ward: '八王子市' },
+                { area: 'kinshicho', coordinates: [35.6969, 139.8137], ward: '墨田区' },
+                { area: 'kitasenju', coordinates: [35.7493, 139.8048], ward: '足立区' },
+                { area: 'jiyugaoka', coordinates: [35.6081, 139.6687], ward: '目黒区' },
+                { area: 'futakotamagawa', coordinates: [35.6121, 139.6276], ward: '世田谷区' },
+                { area: 'akabane', coordinates: [35.7775, 139.7228], ward: '北区' }
+            ];
+
+            // 各主要エリアに複数の駐輪場を生成（エリア選択と同じロジック）
+            const parkingNames = ['駅前駐輪場', '市営駐輪場', '商業施設駐輪場', '公園駐輪場', '病院駐輪場'];
+            
+            majorAreas.forEach((area, areaIndex) => {
+                // 各エリアに5つの駐輪場を生成
+                for (let i = 0; i < 5; i++) {
+                    const lat = area.coordinates[0] + (Math.random() - 0.5) * 0.01;
+                    const lng = area.coordinates[1] + (Math.random() - 0.5) * 0.01;
+                    const available = Math.floor(Math.random() * 50) + 1;
+                    const total = Math.floor(Math.random() * 20) + 80;
+                    const fee = (Math.floor(Math.random() * 5) + 1) * 100;
+
+                    const parkingData = {
+                        id: `tokyo_wide_${areaIndex}_${i}`,
+                        name: `${area.ward}${parkingNames[i]}`,
+                        available: available,
+                        total: total,
+                        fee: fee,
+                        lat: lat,
+                        lng: lng,
+                        ward: area.ward
+                    };
+                    currentParkingData.push(parkingData);
+                }
+            });
+
+            // ズームレベルに応じた表示を実行
+            updateMarkersForZoomLevel();
+
+            // 通知表示
+            showMapNotification('東京全域の駐輪場を表示中（ズームで詳細表示）');
+            
+            // マップコントロール更新
+            document.getElementById('currentArea').textContent = '東京全域';
+            document.getElementById('areaInfo').textContent = 'ズームで詳細表示に切り替え';
+        }
+
+        // 左下広告関連の関数
+        function closeBottomAd() {
+            const ad = document.querySelector('.bottom-left-ad');
+            ad.style.animation = 'slideOutLeft 0.3s ease-in';
+            setTimeout(() => {
+                ad.style.display = 'none';
+            }, 300);
+        }
+
+        function handleBottomAdClick() {
+            console.log('左下広告クリック - アフィリエイトリンクへ遷移');
+            // window.open('https://affiliate-link.com', '_blank');
+        }
+
+        // slideOutLeft アニメーションを追加
+        const adStyle = document.createElement('style');
+        adStyle.textContent = `
+            @keyframes slideOutLeft {
+                from {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+                to {
+                    opacity: 0;
+                    transform: translateX(-100px);
+                }
+            }
+            @keyframes highlight-pulse {
+                0% {
+                    box-shadow: 0 0 20px rgba(52, 152, 219, 0.8);
+                    transform: scale(1);
+                }
+                50% {
+                    box-shadow: 0 0 30px rgba(52, 152, 219, 1);
+                    transform: scale(1.1);
+                }
+                100% {
+                    box-shadow: 0 0 20px rgba(52, 152, 219, 0.8);
+                    transform: scale(1);
+                }
+            }
+        `;
+        document.head.appendChild(adStyle);
+
+        // イベントリスナー設定
+        document.addEventListener('DOMContentLoaded', function() {
+            // 地図初期化
+            initMap();
+            
+            // タブアイテムクリックイベント
+            document.querySelectorAll('.tab-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const areaId = this.getAttribute('data-area');
+                    selectArea(areaId);
+                });
+            });
+            
+            // Enterキーでメッセージ送信
+            document.getElementById('messageInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+            
+            // 初期表示（東京全域に駐輪場を表示）
+            setTimeout(() => {
+                showTokyoWideParkingLots();
+            }, 1000);
+            
         });
     </script>
-    
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </body>
 </html>
