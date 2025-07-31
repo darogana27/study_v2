@@ -29,6 +29,7 @@ const argv = yargs(hideBin(process.argv))
     description: 'Output format (png, jpg, jpeg, bmp)',
     default: 'png'
   })
+  .completion() // ← これを追加！
   .help()
   .alias('help', 'h')
   .argv;
