@@ -1,0 +1,50 @@
+#!/usr/bin/env node
+
+const { saveClipboardImage } = require('../index');
+const yargs = require('yargs/yargs');
+const { hideBin } = require('yargs/helpers');
+
+function getDefaultFilename(format) {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  
+  return `image_${year}-${month}-${day}_${hours}-${minutes}-${seconds}.${format}`;
+}
+
+const argv = yargs(hideBin(process.argv))
+  .usage('Usage: $0 [options]')
+  .option('output', {
+    alias: 'o',
+    type: 'string',
+    description: 'Output file path'
+  })
+  .option('format', {
+    alias: 'f',
+    type: 'string',
+    description: 'Output format (png, jpg, jpeg, bmp)',
+    default: 'png'
+  })
+  .help()
+  .alias('help', 'h')
+  .argv;
+
+(async () => {
+  try {
+    const outputPath = argv.output || getDefaultFilename(argv.format);
+    const result = await saveClipboardImage(outputPath, argv.format);
+    if (result) {
+      console.log(`Image saved to: ${result}`);
+    } else {
+      console.error('No image found in clipboard');
+      process.exit(1);
+    }
+  } catch (error) {
+    console.error('Error:', error.message);
+    process.exit(1);
+  }
+})();

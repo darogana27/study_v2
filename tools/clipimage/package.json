@@ -1,0 +1,27 @@
+{
+  "name": "clipimage",
+  "version": "1.0.0",
+  "description": "A CLI tool to save clipboard images to files",
+  "main": "index.js",
+  "bin": {
+    "clipimage": "./bin/clipimage"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "clipboard",
+    "image",
+    "cli",
+    "save"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "jimp": "^0.22.10",
+    "yargs": "^17.7.2"
+  }
+}
