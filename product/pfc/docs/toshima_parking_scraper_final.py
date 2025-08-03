@@ -283,9 +283,12 @@ class ComprehensiveToshimaParkingScraper:
                             elif re.search(r'\d{2,4}-\d{2,4}-\d{4}', text):
                                 if not facility['phone']:
                                     facility['phone'] = text
-                            elif ('時' in text or '24時間' in text) and '円' not in text:
-                                if not facility['hours']:
-                                    facility['hours'] = text
+                            elif ('時' in text or '24時間' in text or '深夜' in text) and '円' not in text and '台' not in text:
+                                # 時間関連の不要なキーワードを除外
+                                invalid_time_keywords = ['営業時間', '受付時間', '問い合わせ時間', '連絡時間']
+                                if not any(keyword in text for keyword in invalid_time_keywords):
+                                    if not facility['hours']:
+                                        facility['hours'] = text
                             elif '円' in text:
                                 if not facility['fee']:
                                     facility['fee'] = text
@@ -375,8 +378,125 @@ class ComprehensiveToshimaParkingScraper:
         
         return ''
 
+    def clean_text_content(self, text):
+        """テキストから改行・タブを除去してクリーンアップ"""
+        if not text:
+            return ''
+        # 改行とタブを空白に置換
+        cleaned = text.replace('\n', ' ').replace('\t', ' ')
+        # 連続する空白を単一の空白に
+        import re
+        cleaned = re.sub(r'\s+', ' ', cleaned)
+        return cleaned.strip()
+
+    def extract_coin_fee_info(self, content_text):
+        """コイン式（当日利用）料金のみを抽出"""
+        fee_parts = []
+        
+        # 当日利用が「なし」の場合は定期利用のみ
+        if 'なし' in content_text and '当日利用' in content_text:
+            return '定期利用のみ'
+        
+        # 定期利用料金を示すキーワード（これらを除外）
+        periodic_keywords = [
+            '一般', '学生', 'ヶ月', 'か月', '月額', '定期利用', '定期',
+            '年間', '学生証', '身体障害者手帳', '愛の手帳', '区内居住者', '区外居住者',
+            '4,500円', '3,000円', '2,500円', '1,250円', '1,500円', '2,100円', '1,400円'
+        ]
+        
+        # コイン式料金パターン（より包括的に）
+        coin_patterns = [
+            r'最初の\d+時間は?無料[、，、\s]*以降\d+時間ごとに\d+円',
+            r'最初の\d+時間無料[、，、\s]*以降\d+時間ごとに\d+円',
+            r'\d+時間まで無料[、，、\s]*以降\d+時間ごとに\d+円',
+            r'自転車\d+円[（(]最初の\d+時間は?無料[）)]',
+            r'自転車：?\s*\d+円[（(]最初の\d+時間は?無料[）)]',
+            r'自転車：?\s*\d+円',
+            r'\d+時間ごとに\d+円',
+            r'\d+時間\d+円',
+            r'\d+分\d+円',
+            r'以降\d+時間ごとに\d+円',
+            r'自転車\s*\d+円',
+            r'コイン式.*?\d+円',
+            r'時間利用.*?\d+円'
+        ]
+        
+        # 特別な複合パターン（池袋駅東第二のような「最初2時間無料+以降6時間ごとに100円」）
+        complex_patterns = [
+            r'最初の\d+時間は?無料.*?以降\d+時間ごとに\d+円',
+            r'最初の\d+時間無料.*?以降\d+時間ごとに\d+円'
+        ]
+        
+        # 複合パターンを先にチェック
+        for pattern in complex_patterns:
+            match = re.search(pattern, content_text)
+            if match:
+                cleaned_match = self.clean_text_content(match.group())
+                # 定期利用料金を除外（キーワードベース + 高額料金判定）
+                is_periodic = any(keyword in cleaned_match for keyword in periodic_keywords)
+                has_high_amount = re.search(r'[1-9]\d{3,}円', cleaned_match)
+                if not is_periodic and not has_high_amount:
+                    fee_parts.append(cleaned_match)
+                    break  # 複合パターンが見つかったら単一パターンは処理しない
+        
+        # 複合パターンが見つからなかった場合は単一パターンを処理
+        if not fee_parts:
+            for pattern in coin_patterns:
+                matches = re.findall(pattern, content_text)
+                for match in matches:
+                    cleaned_match = self.clean_text_content(match)
+                    # 定期利用料金を除外（キーワードベース + 高額料金判定）
+                    is_periodic = any(keyword in cleaned_match for keyword in periodic_keywords)
+                    # 1000円以上の料金は定期利用の可能性が高い（時間料金は通常100円単位）
+                    has_high_amount = re.search(r'[1-9]\d{3,}円', cleaned_match)
+                    if not is_periodic and not has_high_amount and cleaned_match not in fee_parts:
+                        fee_parts.append(cleaned_match)
+        
+        return '、'.join(fee_parts) if fee_parts else ''
+
+    def extract_operating_hours(self, content_text):
+        """利用時間を正確に抽出"""
+        # 24時間営業の明確な指定
+        if '24時間' in content_text:
+            return '24時間'
+        
+        # 具体的な時間表記を探す
+        time_patterns = [
+            r'午前\d+時から[深夜午後]*\d+時\d*分?',
+            r'午前\d+時.*?から.*?[深夜午後].*?時.*?\d*分?',
+            r'\d+時から\d+時'
+        ]
+        
+        for pattern in time_patterns:
+            time_match = re.search(pattern, content_text)
+            if time_match:
+                cleaned_hours = self.clean_text_content(time_match.group())
+                if cleaned_hours and '円' not in cleaned_hours and '台' not in cleaned_hours:
+                    return cleaned_hours
+        
+        # 当日利用がある場合の営業時間
+        if '当日利用' in content_text and 'なし' not in content_text:
+            return '当日利用可能'
+        
+        return ''
+
+    def determine_motorbike_support(self, content_text, capacity_text):
+        """原付対応を自動判定"""
+        # 明示的な記載がある場合
+        if '原付' in content_text:
+            if '利用できません' in content_text or '利用不可' in content_text:
+                return '利用不可'
+            elif '利用できます' in content_text or '利用可能' in content_text:
+                return '利用可能'
+        
+        # 収容台数にバイクや原付の文字が含まれていない場合は利用不可
+        if capacity_text and not re.search(r'[バイク原付]', capacity_text):
+            return '利用不可'
+        
+        return ''
+
     def extract_structured_data(self, soup, station_name):
-        """HTMLの構造化データから駐輪場情報を抽出"""
+        """HTMLの構造化データから駐輪場情報を抽出（完全版）"""
         facilities = []
         
         # h3タグで区切られた駐輪場セクションを探す
@@ -402,59 +522,73 @@ class ComprehensiveToshimaParkingScraper:
                 'other_info': ''
             }
             
-            # h3の次の要素を探す（div、p、ul、tableなど）
+            # h3の次の要素を広範囲に探す（改善版）
             current_element = h3.find_next_sibling()
             content_texts = []
+            all_element_text = ""
             
-            while current_element and current_element.name in ['p', 'ul', 'table', 'div']:
+            # セクション全体のテキストを収集
+            while current_element and current_element.name in ['p', 'ul', 'table', 'div', 'dl', 'dd', 'dt']:
                 element_text = current_element.get_text()
                 content_texts.append(element_text)
+                all_element_text += " " + element_text
                 
-                if current_element.name == 'p':
-                    # 住所と電話番号を抽出
+                # より包括的な情報抽出
+                if current_element.name in ['p', 'div']:
+                    # pタグとdivタグからの抽出
                     lines = [line.strip() for line in element_text.split('\n') if line.strip()]
                     
                     for line in lines:
-                        # 住所抽出（改善版）
+                        # 住所抽出
                         if not facility['address']:
                             address = self.extract_address_from_text(line)
                             if address:
                                 facility['address'] = address
                         
-                        # 電話番号を抽出
-                        phone_match = re.search(r'電話[：:]?\s*(\d{2,4}-\d{2,4}-\d{4})', line)
-                        if phone_match:
-                            facility['phone'] = phone_match.group(1)
+                        # 電話番号を複数パターンで抽出
+                        phone_patterns = [
+                            r'電話[：:]\s*(\d{2,4}[-\s]\d{2,4}[-\s]\d{4})',
+                            r'TEL[：:]\s*(\d{2,4}[-\s]\d{2,4}[-\s]\d{4})',
+                            r'(\d{2,4}[-\s]\d{2,4}[-\s]\d{4})',
+                            r'(\d{4}[-\s]\d{3}[-\s]\d{3})'  # 0120等のフリーダイヤル
+                        ]
+                        
+                        for phone_pattern in phone_patterns:
+                            phone_match = re.search(phone_pattern, line)
+                            if phone_match and not facility['phone']:
+                                phone_number = phone_match.group(1).replace(' ', '-')
+                                facility['phone'] = phone_number
+                                break
                 
                 elif current_element.name == 'ul':
-                    # リスト形式の情報を抽出
+                    # リスト形式の情報を抽出（改善版）
                     list_items = current_element.find_all('li')
                     for li in list_items:
                         li_text = li.get_text(strip=True)
                         
-                        # 住所抽出（改善版）
+                        # 住所抽出
                         if not facility['address']:
                             address = self.extract_address_from_text(li_text)
                             if address:
                                 facility['address'] = address
                         
                         # 電話番号
-                        phone_match = re.search(r'電話[：:]?\s*(\d{2,4}-\d{2,4}-\d{4})', li_text)
-                        if phone_match:
-                            facility['phone'] = phone_match.group(1)
+                        phone_patterns = [
+                            r'電話[：:]\s*(\d{2,4}[-\s]\d{2,4}[-\s]\d{4})',
+                            r'TEL[：:]\s*(\d{2,4}[-\s]\d{2,4}[-\s]\d{4})',
+                            r'(\d{2,4}[-\s]\d{2,4}[-\s]\d{4})',
+                            r'(\d{4}[-\s]\d{3}[-\s]\d{3})'
+                        ]
                         
-                        # 利用時間
-                        if ('時間' in li_text or '午前' in li_text or '午後' in li_text or '24時間' in li_text) and '円' not in li_text:
-                            if not facility['hours']:
-                                facility['hours'] = li_text
-                        
-                        # 料金
-                        if '円' in li_text:
-                            if not facility['fee']:
-                                facility['fee'] = li_text
+                        for phone_pattern in phone_patterns:
+                            phone_match = re.search(phone_pattern, li_text)
+                            if phone_match and not facility['phone']:
+                                phone_number = phone_match.group(1).replace(' ', '-')
+                                facility['phone'] = phone_number
+                                break
                         
                         # 収容台数
-                        capacity_match = re.search(r'(\d+)台', li_text)
+                        capacity_match = re.search(r'(\d+)\s*台', li_text)
                         if capacity_match:
                             facility['capacity'] = capacity_match.group()
                         
@@ -462,60 +596,173 @@ class ComprehensiveToshimaParkingScraper:
                         if '原付' in li_text:
                             if '利用できません' in li_text or '利用不可' in li_text:
                                 facility['motorbike_support'] = '利用不可'
-                            elif '円' in li_text or '利用可' in li_text:
+                            elif '利用できます' in li_text or '利用可能' in li_text:
                                 facility['motorbike_support'] = '利用可能'
+                        
+                        # 利用時間（改善版）
+                        if not facility['hours']:
+                            extracted_hours = self.extract_operating_hours(li_text)
+                            if extracted_hours:
+                                facility['hours'] = extracted_hours
                 
                 elif current_element.name == 'table':
-                    # テーブル形式の情報を抽出
-                    # 料金情報の抽出（円を含む行から）
-                    fee_lines = []
-                    for line in element_text.split('\n'):
-                        line = line.strip()
-                        if '円' in line and len(line) < 100:
-                            fee_lines.append(line)
+                    # テーブル形式の詳細情報を抽出（改善版 + 料金テーブル対応）
+                    rows = current_element.find_all('tr')
                     
-                    if fee_lines and not facility['fee']:
-                        # 最も具体的な料金情報を選択
-                        for fee_line in fee_lines:
-                            if '時間' in fee_line or '無料' in fee_line:
-                                facility['fee'] = fee_line
-                                break
-                        if not facility['fee'] and fee_lines:
-                            facility['fee'] = fee_lines[0]
+                    # まず料金テーブルかどうかを判定
+                    is_fee_table = False
+                    header_row = None
+                    for row in rows:
+                        cells = row.find_all(['th', 'td'])
+                        row_text = ' '.join([cell.get_text(strip=True) for cell in cells])
+                        if '時間利用' in row_text or 'コイン式' in row_text:
+                            is_fee_table = True
+                            header_row = row
+                            break
                     
-                    # 利用時間の抽出
-                    if '24時間' in element_text and not facility['hours']:
-                        facility['hours'] = '24時間'
-                    elif ('午前' in element_text or '午後' in element_text) and not facility['hours']:
-                        time_match = re.search(r'午前\d+時.*?午後\d+時.*?\d+分', element_text)
-                        if time_match:
-                            facility['hours'] = time_match.group()
+                    if is_fee_table and header_row:
+                        # 料金テーブルの処理
+                        header_cells = header_row.find_all(['th', 'td'])
+                        coin_column_index = -1
+                        hours_column_index = -1
+                        
+                        for i, cell in enumerate(header_cells):
+                            cell_text = cell.get_text(strip=True)
+                            if '時間利用' in cell_text or 'コイン式' in cell_text:
+                                coin_column_index = i
+                            elif '利用時間' in cell_text:
+                                hours_column_index = i
+                        
+                        # データ行から情報を抽出
+                        for row in rows:
+                            cells = row.find_all(['td', 'th'])
+                            if len(cells) > max(coin_column_index, hours_column_index):
+                                # 時間利用（コイン式）の料金を抽出
+                                if coin_column_index >= 0 and coin_column_index < len(cells):
+                                    coin_fee = cells[coin_column_index].get_text(strip=True)
+                                    if coin_fee and coin_fee != 'なし' and '円' in coin_fee and not facility['fee']:
+                                        facility['fee'] = self.clean_text_content(coin_fee)
+                                
+                                # 利用時間を抽出
+                                if hours_column_index >= 0 and hours_column_index < len(cells):
+                                    hours_text = cells[hours_column_index].get_text(strip=True)
+                                    # ヘッダー文字列を除外
+                                    if hours_text and hours_text != '利用時間' and not facility['hours']:
+                                        extracted_hours = self.extract_operating_hours(hours_text)
+                                        if extracted_hours:
+                                            facility['hours'] = extracted_hours
                     
-                    # 原付対応の判定
-                    if '原付' in element_text and not facility['motorbike_support']:
-                        if '利用できません' in element_text or '利用不可' in element_text:
-                            facility['motorbike_support'] = '利用不可'
-                        elif '円' in element_text and '原付' in element_text:
-                            facility['motorbike_support'] = '利用可能'
+                    # 通常のテーブル処理
+                    for row in rows:
+                        cells = row.find_all(['td', 'th'])
+                        if len(cells) >= 2:
+                            key_cell = cells[0].get_text(strip=True)
+                            value_cell = cells[1].get_text(strip=True)
+                            
+                            # 住所
+                            if '住所' in key_cell and not facility['address']:
+                                address = self.extract_address_from_text(value_cell)
+                                if address:
+                                    facility['address'] = address
+                            
+                            # 電話番号
+                            elif '電話' in key_cell or 'TEL' in key_cell:
+                                phone_patterns = [
+                                    r'(\d{2,4}[-\s]\d{2,4}[-\s]\d{4})',
+                                    r'(\d{4}[-\s]\d{3}[-\s]\d{3})'
+                                ]
+                                for phone_pattern in phone_patterns:
+                                    phone_match = re.search(phone_pattern, value_cell)
+                                    if phone_match and not facility['phone']:
+                                        facility['phone'] = phone_match.group(1).replace(' ', '-')
+                                        break
+                            
+                            # 利用時間
+                            elif '利用時間' in key_cell or '営業時間' in key_cell:
+                                if not facility['hours']:
+                                    extracted_hours = self.extract_operating_hours(value_cell)
+                                    if extracted_hours:
+                                        facility['hours'] = extracted_hours
+                            
+                            # 料金（コイン式のみ）
+                            elif '料金' in key_cell or '利用料金' in key_cell:
+                                if not facility['fee']:
+                                    coin_fee = self.extract_coin_fee_info(value_cell)
+                                    if coin_fee:
+                                        facility['fee'] = coin_fee
+                            
+                            # 収容台数
+                            elif '台数' in key_cell or '収容' in key_cell:
+                                capacity_match = re.search(r'(\d+)\s*台', value_cell)
+                                if capacity_match:
+                                    facility['capacity'] = capacity_match.group()
+                            
+                            # 原付対応
+                            elif '原付' in key_cell or 'バイク' in key_cell:
+                                motorbike_support = self.determine_motorbike_support(value_cell, '')
+                                if motorbike_support:
+                                    facility['motorbike_support'] = motorbike_support
                 
                 # 次の要素へ
                 current_element = current_element.find_next_sibling()
                 
-                # 次のh3タグが来たら終了
+                # h3タグに遭遇したら停止
                 if current_element and current_element.name == 'h3':
                     break
             
-            # 住所がまだ見つからない場合は、すべてのコンテンツから検索
-            if not facility['address'] and content_texts:
-                all_text = ' '.join(content_texts)
-                address = self.extract_address_from_text(all_text)
-                if address:
-                    facility['address'] = address
+            # 全体のテキストから包括的な情報を抽出
+            if all_element_text:
+                # 住所がまだ見つからない場合
+                if not facility['address']:
+                    address = self.extract_address_from_text(all_element_text)
+                    if address:
+                        facility['address'] = address
+                
+                # コイン式料金情報を抽出
+                if not facility['fee']:
+                    coin_fee = self.extract_coin_fee_info(all_element_text)
+                    if coin_fee:
+                        facility['fee'] = coin_fee
+                    else:
+                        # 料金情報が見つからない場合は「定期利用のみ」とする
+                        facility['fee'] = '定期利用のみ'
+                
+                # 電話番号がまだ見つからない場合
+                if not facility['phone']:
+                    phone_patterns = [
+                        r'電話[：:]\s*(\d{2,4}[-\s]\d{2,4}[-\s]\d{4})',
+                        r'TEL[：:]\s*(\d{2,4}[-\s]\d{2,4}[-\s]\d{4})',
+                        r'(\d{2,4}[-\s]\d{2,4}[-\s]\d{4})',
+                        r'(\d{4}[-\s]\d{3}[-\s]\d{3})'
+                    ]
+                    
+                    for phone_pattern in phone_patterns:
+                        phone_match = re.search(phone_pattern, all_element_text)
+                        if phone_match:
+                            facility['phone'] = phone_match.group(1).replace(' ', '-')
+                            break
+                
+                # 利用時間がまだ見つからない場合
+                if not facility['hours']:
+                    extracted_hours = self.extract_operating_hours(all_element_text)
+                    if extracted_hours:
+                        facility['hours'] = extracted_hours
+                
+                # 収容台数
+                if not facility['capacity']:
+                    capacity_match = re.search(r'(\d+)\s*台', all_element_text)
+                    if capacity_match:
+                        facility['capacity'] = capacity_match.group()
+                
+                # 原付対応（最終判定）
+                if not facility['motorbike_support']:
+                    motorbike_support = self.determine_motorbike_support(all_element_text, facility['capacity'])
+                    if motorbike_support:
+                        facility['motorbike_support'] = motorbike_support
             
-            # 最低限の情報（名前）があれば追加
-            if facility['name'] and len(facility['name']) > 3:
+            # 最低限の情報が揃っている場合のみ追加
+            if facility['name'] and (facility['address'] or facility['phone'] or facility['hours'] or facility['fee']):
                 facilities.append(facility)
-                self.log(f"抽出成功: {facility['name']} - {facility['address']}")
         
         return facilities
 
@@ -533,19 +780,49 @@ class ComprehensiveToshimaParkingScraper:
             facilities = self.extract_structured_data(soup, station_name)
             self.log(f"構造化データから{len(facilities)}件抽出")
             
-            # 住所が見つからない駐輪場について、ページ全体から住所を検索
+            # 住所と利用時間が見つからない駐輪場について、ページ全体から情報を検索
             page_text = soup.get_text()
             for facility in facilities:
-                if not facility['address']:
-                    # 駐輪場名の前後から住所を検索
+                if not facility['address'] or not facility['hours']:
+                    # 駐輪場名の前後から情報を抽出
                     name_pattern = re.escape(facility['name'])
-                    # 駐輪場名の後に続く文章から住所を抽出
-                    match = re.search(name_pattern + r'[^\n]*?\n([^\n]*)', page_text)
+                    # 駐輪場名の周辺テキストを広めに取得
+                    match = re.search(name_pattern + r'[^\n]*?(?:\n[^\n]*?){0,5}', page_text)
                     if match:
-                        potential_address = self.extract_address_from_text(match.group(1))
-                        if potential_address:
-                            facility['address'] = potential_address
-                            self.log(f"ページ全体から住所発見: {facility['name']} - {potential_address}")
+                        context_text = match.group()
+                        
+                        # 住所抽出
+                        if not facility['address']:
+                            potential_address = self.extract_address_from_text(context_text)
+                            if potential_address:
+                                facility['address'] = potential_address
+                                self.log(f"ページ全体から住所発見: {facility['name']} - {potential_address}")
+                        
+                        # 利用時間抽出
+                        if not facility['hours']:
+                            # 24時間の検出
+                            if '24時間' in context_text:
+                                facility['hours'] = '24時間'
+                                self.log(f"ページ全体から利用時間発見: {facility['name']} - 24時間")
+                            else:
+                                # 時間パターンの検索（強化版）
+                                time_patterns = [
+                                    r'午前\d+時から\s*深夜\d+時\d+分',
+                                    r'午前\d+時.*?深夜\d+時\d+分',
+                                    r'午前\d+時.*?午後\d+時.*?\d+分',
+                                    r'午前\d+時.*?午後\d+時',
+                                    r'\d+時.*?深夜\d+時',
+                                    r'\d+時.*?\d+時\d+分',
+                                    r'午前\d+時\s*深夜\d+時\d+分',
+                                    r'午前\d+時\s+から\s+深夜\d+時\d+分'
+                                ]
+                                
+                                for pattern in time_patterns:
+                                    time_match = re.search(pattern, context_text)
+                                    if time_match:
+                                        facility['hours'] = time_match.group()
+                                        self.log(f"ページ全体から利用時間発見: {facility['name']} - {facility['hours']}")
+                                        break
             
             # データをJSON形式に整形（必要な情報のみ）
             cleaned_facilities = []
