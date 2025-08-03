@@ -298,6 +298,83 @@ class ComprehensiveToshimaParkingScraper:
         
         return facilities
 
+    def extract_address_from_text(self, text):
+        """テキストから住所情報を抽出（改善版）"""
+        lines = [line.strip() for line in text.split('\n') if line.strip()]
+        
+        for line in lines:
+            # 住所のプレフィックスを削除
+            clean_line = line.replace('住所：', '').replace('住所:', '').strip()
+            
+            # 明確に除外すべきパターン
+            invalid_patterns = [
+                r'交通案内',
+                r'JR.*駅',
+                r'メトロ.*駅',
+                r'西武線',
+                r'改札より',
+                r'出口',
+                r'直結',
+                r'約\d+メートル',
+                r'令和\d+年',
+                r'閉鎖',
+                r'をもって',
+                r'写真街区',
+                r'Dエリア',
+                r'地下',
+                r'[東西南北]口',
+                r'エレベーター',
+                r'階段',
+                r'電話',
+                r'TEL',
+                r'営業時間',
+                r'利用時間',
+                r'料金',
+                r'円',
+                r'台',
+                r'利用可',
+                r'利用不可',
+                r'原付',
+                r'バイク',
+                r'定期',
+                r'月極'
+            ]
+            
+            # 無効パターンがあるかチェック
+            if any(re.search(pattern, clean_line) for pattern in invalid_patterns):
+                continue
+            
+            # 有効な住所パターン（より柔軟に）
+            address_patterns = [
+                r'.*[区市].*[町村].*\d+.*',  # 区・町・番号
+                r'.*[区市].*\d+-\d+.*',      # 区・番号-番号
+                r'.*[区市].*\d+先.*',        # 区・番号先
+                r'.*[区市].*\d+丁目.*',      # 区・丁目
+                r'.*池袋\d+-\d+-\d+',        # 池袋の番号パターン（3桁）
+                r'.*大塚\d+-\d+-\d+',        # 大塚の番号パターン（3桁）
+                r'.*巣鴨\d+-\d+-\d+',        # 巣鴨の番号パターン（3桁）
+                r'.*要町\d+-\d+-\d+',        # 要町の番号パターン（3桁）
+                r'.*巣鴨\d+-\d+$',           # 巣鴨の番号パターン（2桁）
+                r'.*目白\d+-\d+$',           # 目白の番号パターン（2桁）
+                r'.*駒込\d+-\d+$',           # 駒込の番号パターン（2桁）
+                r'.*雑司が谷\d+-\d+$',       # 雑司が谷の番号パターン（2桁）
+                r'.*千川\d+-\d+$',           # 千川の番号パターン（2桁）
+                r'.*町\d+.*',                # 町番号
+                r'.*\d+先.*',                # 番号先
+                r'.*\d+-\d+.*先.*',          # 番号-番号先
+                r'.*\d+丁目\d+.*',           # 丁目番号
+                r'.*[一二三四五六七八九]丁目.*',  # 漢数字丁目
+                r'.*\d+-\d+-\d+',            # 番号-番号-番号（一般的な住所）
+                r'.*[東西南北]池袋.*\d+.*'    # 東池袋、西池袋などのパターン
+            ]
+            
+            # 住所として有効で、3文字以上50文字以下
+            if (any(re.search(pattern, clean_line) for pattern in address_patterns) and 
+                3 <= len(clean_line) <= 50):
+                return clean_line
+        
+        return ''
+
     def extract_structured_data(self, soup, station_name):
         """HTMLの構造化データから駐輪場情報を抽出"""
         facilities = []
@@ -327,19 +404,22 @@ class ComprehensiveToshimaParkingScraper:
             
             # h3の次の要素を探す（div、p、ul、tableなど）
             current_element = h3.find_next_sibling()
+            content_texts = []
             
             while current_element and current_element.name in ['p', 'ul', 'table', 'div']:
                 element_text = current_element.get_text()
+                content_texts.append(element_text)
                 
                 if current_element.name == 'p':
                     # 住所と電話番号を抽出
                     lines = [line.strip() for line in element_text.split('\n') if line.strip()]
                     
                     for line in lines:
-                        # 住所らしき行（区、町、丁目、先を含む）
-                        if any(keyword in line for keyword in ['区', '町', '丁目', '先', '番']) and '電話' not in line:
-                            if not facility['address']:  # 最初の住所のみ
-                                facility['address'] = line
+                        # 住所抽出（改善版）
+                        if not facility['address']:
+                            address = self.extract_address_from_text(line)
+                            if address:
+                                facility['address'] = address
                         
                         # 電話番号を抽出
                         phone_match = re.search(r'電話[：:]?\s*(\d{2,4}-\d{2,4}-\d{4})', line)
@@ -352,10 +432,11 @@ class ComprehensiveToshimaParkingScraper:
                     for li in list_items:
                         li_text = li.get_text(strip=True)
                         
-                        # 住所
-                        if any(keyword in li_text for keyword in ['区', '町', '丁目', '先', '番']) and '電話' not in li_text:
-                            if not facility['address']:
-                                facility['address'] = li_text
+                        # 住所抽出（改善版）
+                        if not facility['address']:
+                            address = self.extract_address_from_text(li_text)
+                            if address:
+                                facility['address'] = address
                         
                         # 電話番号
                         phone_match = re.search(r'電話[：:]?\s*(\d{2,4}-\d{2,4}-\d{4})', li_text)
@@ -424,6 +505,13 @@ class ComprehensiveToshimaParkingScraper:
                 if current_element and current_element.name == 'h3':
                     break
             
+            # 住所がまだ見つからない場合は、すべてのコンテンツから検索
+            if not facility['address'] and content_texts:
+                all_text = ' '.join(content_texts)
+                address = self.extract_address_from_text(all_text)
+                if address:
+                    facility['address'] = address
+            
             # 最低限の情報（名前）があれば追加
             if facility['name'] and len(facility['name']) > 3:
                 facilities.append(facility)
@@ -445,22 +533,43 @@ class ComprehensiveToshimaParkingScraper:
             facilities = self.extract_structured_data(soup, station_name)
             self.log(f"構造化データから{len(facilities)}件抽出")
             
+            # 住所が見つからない駐輪場について、ページ全体から住所を検索
+            page_text = soup.get_text()
+            for facility in facilities:
+                if not facility['address']:
+                    # 駐輪場名の前後から住所を検索
+                    name_pattern = re.escape(facility['name'])
+                    # 駐輪場名の後に続く文章から住所を抽出
+                    match = re.search(name_pattern + r'[^\n]*?\n([^\n]*)', page_text)
+                    if match:
+                        potential_address = self.extract_address_from_text(match.group(1))
+                        if potential_address:
+                            facility['address'] = potential_address
+                            self.log(f"ページ全体から住所発見: {facility['name']} - {potential_address}")
+            
             # データをJSON形式に整形（必要な情報のみ）
             cleaned_facilities = []
             for facility in facilities:
-                # 住所のクリーニング
+                # 住所のクリーニング（更に改善）
                 address = facility['address']
                 if address:
-                    # 「住所：」プレフィックスを削除
-                    address = address.replace('住所：', '').strip()
-                    # 交通案内情報が混入している場合は除外
-                    if any(keyword in address for keyword in ['交通案内', 'JR', 'メトロ', '西武線', '改札より', '出口', '直結']):
+                    # 最終的なクリーニング（既に extract_address_from_text で処理済みだが念のため）
+                    address = address.replace('住所：', '').replace('住所:', '').strip()
+                    
+                    # 追加の除外チェック
+                    invalid_address_keywords = [
+                        '交通案内', 'JR', 'メトロ', '西武線', '改札より', '出口', '直結',
+                        '令和', '閉鎖', 'をもって', '写真街区', 'Dエリア',
+                        '約', 'メートル', '地下', '北口', '南口', '東口', '西口',
+                        'エレベーター', '階段', '電話', 'TEL', '円', '台',
+                        '営業時間', '利用時間', '料金', '原付', 'バイク'
+                    ]
+                    
+                    if any(keyword in address for keyword in invalid_address_keywords):
                         address = ''
-                    # 閉鎖情報が混入している場合は除外  
-                    if any(keyword in address for keyword in ['令和', '閉鎖', 'をもって閉鎖', '写真街区', 'Dエリア']):
-                        address = ''
-                    # その他の無効な住所情報を除外
-                    if any(keyword in address for keyword in ['約', 'メートル', '地下', '北口', '南口', '東口', '西口']):
+                    
+                    # 空文字や短すぎる住所は除外
+                    if len(address) < 3:
                         address = ''
                 
                 cleaned_facility = {
