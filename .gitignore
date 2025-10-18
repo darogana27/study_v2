@@ -5,5 +5,45 @@
 *claude*
 *CLAUDE*
 
-# Claude development notes (sensitive information)
-product/pfc/docs/CLAUDE.md
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 環境変数
+.env
+.env.local
+.env.production
+
+# データベース
+*.db
+*.sqlite
+*.sqlite3
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ログ
+logs/
+*.log
+
+# ビルド成果物
+dist/
+build/
+.cache/
+
+# テスト
+coverage/
+
+# 一時ファイル
+*.tmp
+.temp/
