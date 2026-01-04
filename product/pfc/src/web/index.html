@@ -897,6 +897,54 @@
         let chatTabCounter = 1;
         let currentParkingData = [];
         let currentZoomLevel = 11;
+        
+        // API設定
+        const API_BASE_URL = 'https://xckspu9thj.execute-api.ap-northeast-1.amazonaws.com/dev';
+        
+        // 実API呼び出し関数
+        async function fetchParkingData(params = {}) {
+            try {
+                const queryString = new URLSearchParams(params).toString();
+                const url = `${API_BASE_URL}/parking-spots${queryString ? '?' + queryString : ''}`;
+                
+                console.log('API呼び出し:', url);
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('API応答:', data);
+                return data;
+            } catch (error) {
+                console.error('API呼び出しエラー:', error);
+                return [];
+            }
+        }
+        
+        // チャットAPI呼び出し関数
+        async function sendChatAPIMessage(message) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('チャットAPI呼び出しエラー:', error);
+                return { response: '申し訳ございません。一時的にサーバーに接続できません。' };
+            }
+        }
         let chatTabs = {
             1: {
                 id: 1,
@@ -1180,7 +1228,7 @@
         }
 
         // エリア選択
-        function selectArea(areaId) {
+        async function selectArea(areaId) {
             console.log('エリア選択:', areaId);
             
             if (!areaData[areaId]) {
@@ -1208,8 +1256,8 @@
             document.getElementById('currentArea').textContent = area.name;
             document.getElementById('areaInfo').textContent = `${area.ward} を表示中`;
 
-            // 駐輪場データ生成（モック）
-            generateMockParkingData(area);
+            // 駐輪場データ生成（実API）
+            await generateMockParkingData(area);
 
             // チャットに結果表示（エリア選択時は履歴に残さない）
             const currentState = chatTabs[currentChatTab].state;
@@ -1335,17 +1383,56 @@
             return currentParkingData;
         }
 
-        // モック駐輪場データ生成（マップ用）
-        function generateMockParkingData(area) {
+        // 実API駐輪場データ取得（マップ用）
+        async function generateMockParkingData(area) {
             // 既存のマーカーを削除
             markers.forEach(marker => map.removeLayer(marker));
             markers = [];
             
-            // 統一された駐輪場データを生成
-            const parkingDataSet = generateParkingDataSet(area);
+            try {
+                // エリア情報を使ってAPIから実データを取得
+                const apiParams = {};
+                if (area.ward) {
+                    apiParams.ward = area.ward;
+                }
+                
+                console.log('駐輪場データ取得中...', apiParams);
+                showMapNotification('駐輪場データを取得中...');
+                
+                const apiData = await fetchParkingData(apiParams);
+                
+                if (apiData && apiData.length > 0) {
+                    // APIから取得した実データを使用
+                    currentParkingData = apiData.map(spot => ({
+                        id: spot.id,
+                        name: spot.name,
+                        available: spot.available || Math.floor(Math.random() * 50) + 1,
+                        total: spot.total || Math.floor(Math.random() * 20) + 80,
+                        fee: extractPrice(spot.price) || (Math.floor(Math.random() * 5) + 1) * 100,
+                        lat: spot.coordinates?.lat || spot.lat,
+                        lng: spot.coordinates?.lng || spot.lng,
+                        ward: spot.ward,
+                        address: spot.address
+                    }));
+                    
+                    showMapNotification(`実データ取得完了: ${apiData.length}件の駐輪場`);
+                } else {
+                    // APIデータがない場合はモックデータ使用
+                    console.log('APIデータなし、モックデータを使用');
+                    const parkingDataSet = generateParkingDataSet(area);
+                    currentParkingData = parkingDataSet;
+                    showMapNotification('モックデータで表示中');
+                }
+            } catch (error) {
+                console.error('API呼び出しエラー:', error);
+                // エラー時はモックデータを使用
+                const parkingDataSet = generateParkingDataSet(area);
+                currentParkingData = parkingDataSet;
+                showMapNotification('接続エラー: モックデータで表示');
+            }
             
             // マーカーを作成
-            parkingDataSet.forEach(parkingData => {
+            currentParkingData.forEach(parkingData => {
                 const customIcon = createCustomIcon(parkingData.available);
                 
                 const marker = L.marker([parkingData.lat, parkingData.lng], { icon: customIcon }).addTo(map)
@@ -1357,6 +1444,7 @@
                             </p>
                             <p>料金: ${parkingData.fee}円/日</p>
                             <p>営業: 24時間</p>
+                            ${parkingData.address ? `<p>📍 ${parkingData.address}</p>` : ''}
                         </div>
                     `)
                     .on('click', function() {
@@ -1367,6 +1455,13 @@
                 marker.parkingId = parkingData.id;
                 markers.push(marker);
             });
+        }
+        
+        // 料金テキストから数値を抽出
+        function extractPrice(priceText) {
+            if (!priceText) return 0;
+            const match = priceText.match(/\d+/);
+            return match ? parseInt(match[0]) : 0;
         }
 
         // モック駐輪場リスト生成（チャット用）
@@ -1737,7 +1832,7 @@
         }
 
         // メッセージ送信（フリー入力）
-        function sendMessage() {
+        async function sendMessage() {
             const input = document.getElementById('messageInput');
             const message = input.value.trim();
             
@@ -1746,18 +1841,29 @@
             addUserMessage(message);
             input.value = '';
             
-            // 簡単な応答ロジック
-            setTimeout(() => {
-                if (message.includes('空き') || message.includes('available')) {
-                    showConditionOptions();
-                } else if (message.includes('料金') || message.includes('安い')) {
-                    selectCondition('price');
-                } else if (message.includes('24時間') || message.includes('深夜')) {
-                    selectCondition('24hours');
+            // 実APIを使用したチャット応答
+            try {
+                const response = await sendChatAPIMessage(message);
+                if (response.response) {
+                    addBotMessage(response.response);
                 } else {
-                    addBotMessage('ご質問ありがとうございます！上の選択肢から検索方法を選んでいただくか、具体的な目的地や条件を教えてください。');
+                    // フォールバック：簡単な応答ロジック
+                    setTimeout(() => {
+                        if (message.includes('空き') || message.includes('available')) {
+                            showConditionOptions();
+                        } else if (message.includes('料金') || message.includes('安い')) {
+                            selectCondition('price');
+                        } else if (message.includes('24時間') || message.includes('深夜')) {
+                            selectCondition('24hours');
+                        } else {
+                            addBotMessage('ご質問ありがとうございます！上の選択肢から検索方法を選んでいただくか、具体的な目的地や条件を教えてください。');
+                        }
+                    }, 500);
                 }
-            }, 500);
+            } catch (error) {
+                console.error('チャット応答エラー:', error);
+                addBotMessage('申し訳ございません。一時的にサーバーに接続できません。');
+            }
         }
 
         // マーカーにフォーカスする関数（マーカーの直接クリック用）
@@ -2065,9 +2171,9 @@
                 }
             });
             
-            // 初期表示（東京全域に駐輪場を表示）
+            // 初期表示（池袋エリアで実データテスト）
             setTimeout(() => {
-                showTokyoWideParkingLots();
+                selectArea('ikebukuro');
             }, 1000);
             
         });
